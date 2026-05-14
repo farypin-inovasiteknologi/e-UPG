@@ -140,17 +140,18 @@ async function navigate(viewName) {
     toggleMobileMenu();
   }
 }
-
 async function loadSettingsInit() {
   try {
     const resAPI = await callAPI('getSettings');
     const res = resAPI.data;
-    if (!res) return;
+    if (!res) return; // Jika kosong, hentikan proses
     
+    // Fungsi bantuan agar kode lebih ringkas
     const setVal = (id, val) => { let el = document.getElementById(id); if(el) el.value = val; };
     const setTxt = (id, val) => { let el = document.getElementById(id); if(el) el.innerText = val; };
     const setHtml = (id, val) => { let el = document.getElementById(id); if(el) el.innerHTML = val; };
 
+    // Update teks identitas Instansi
     setTxt('landing-pemda', res.Pemda || "PEMERINTAH DAERAH");
     setTxt('landing-dinas', res.Nama_Dinas || "DINAS PENDIDIKAN");
     setTxt('sidebar-app-name', "e-UPG " + (res.Pemda || ""));
@@ -160,6 +161,7 @@ async function loadSettingsInit() {
     setTxt('print-dinas', res.Nama_Dinas || "NAMA INSTANSI");
     setTxt('print-alamat', res.Alamat || "");
     
+    // Update Kontak
     let kontakInfo = [];
     if(res.Email_Dinas) kontakInfo.push(res.Email_Dinas);
     if(res.Telp_Dinas) kontakInfo.push(res.Telp_Dinas);
@@ -177,8 +179,9 @@ async function loadSettingsInit() {
     if (elTelp && res.Telp_Dinas) elTelp.href = "tel:" + res.Telp_Dinas;
     if (elEmail && res.Email_Dinas) elEmail.href = "mailto:" + res.Email_Dinas;
 
+    // Update Gambar Logo
     if(res.Logo_Instansi_URL) {
-      ['landing-logo-instansi', 'print-logo-instansi', 'preview-logo-instansi'].forEach(id => {
+      ['landing-logo-instansi', 'print-logo-instansi', 'preview-logo-instansi', 'mobile-header-logo', 'sidebar-logo'].forEach(id => {
         let el = document.getElementById(id);
         if(el) { el.src = res.Logo_Instansi_URL; el.classList.remove('hidden'); }
       });
@@ -192,18 +195,11 @@ async function loadSettingsInit() {
       });
       setVal('set-logo-dinas-base64', res.Logo_URL);
     }
-
-    if(res.Logo_Instansi_URL) {
-      let logoHp = document.getElementById('mobile-header-logo');
-      if(logoHp) { logoHp.src = res.Logo_Instansi_URL; logoHp.classList.remove('hidden'); }
-      
-      let logoSidebar = document.getElementById('sidebar-logo');
-      if(logoSidebar) { logoSidebar.src = res.Logo_Instansi_URL; logoSidebar.classList.remove('hidden'); }
-    }
     
     setTxt('mobile-header-dinas', res.Nama_Dinas || "Dinas Pendidikan");
     setTxt('sidebar-dinas', res.Nama_Dinas || "Dinas Pendidikan");
     
+    // Isi otomatis ke form Pengaturan
     setVal('set-pemda', res.Pemda || "");
     setVal('set-nama', res.Nama_Dinas || "");
     setVal('set-alamat', res.Alamat || "");
@@ -212,8 +208,11 @@ async function loadSettingsInit() {
     setVal('set-web', res.Web_Dinas || "");
     setVal('set-hp', res.HP_Admin || "");
 
+    // Panggil Dropdown Unit Kerja
     loadUnitKerjaList();
-  } catch(err) { console.log("Gagal memuat pengaturan: ", err); }
+  } catch(err) { 
+    console.error("Gagal memuat pengaturan awal: ", err); 
+  }
 }
 
 async function loadUnitKerjaList() {
@@ -572,11 +571,13 @@ async function simpanPengaturan() {
     showLoading(false);
     if (res.success) {
       Swal.fire('Berhasil', res.message, 'success'); 
-      loadSettingsInit(); 
+      loadSettingsInit(); // Memanggil fungsi pembaruan tampilan
     } else {
       Swal.fire('Gagal', res.message, 'error');
     }
   } catch (err) {
+    // TAMBAHAN: Mencetak error asli ke console agar mudah dilacak
+    console.error("Detail Error Sistem:", err); 
     showLoading(false);
     Swal.fire('Error Sistem', 'Gagal mengirim data.', 'error');
   }
@@ -620,101 +621,6 @@ async function jalankanBackup() {
     }
   }
 
-
-  // --- MEMUAT PENGATURAN AWAL (KEBAL ERROR) ---
-  function loadSettingsInit() {
-    google.script.run
-      .withFailureHandler(err => console.log("Gagal memuat pengaturan: ", err))
-      .withSuccessHandler(function(res) {
-        if (!res) return; // Hentikan jika database kosong
-        
-        // Fungsi Penyelamat: Jika kotak input tidak ada, script tidak akan macet/crash
-        const setVal = (id, val) => { let el = document.getElementById(id); if(el) el.value = val; };
-        const setTxt = (id, val) => { let el = document.getElementById(id); if(el) el.innerText = val; };
-        const setHtml = (id, val) => { let el = document.getElementById(id); if(el) el.innerHTML = val; };
-
-        // 1. Tampilan Halaman Landing & Sidebar
-        setTxt('landing-pemda', res.Pemda || "PEMERINTAH DAERAH");
-        setTxt('landing-dinas', res.Nama_Dinas || "DINAS PENDIDIKAN");
-        setTxt('sidebar-app-name', "e-UPG " + (res.Pemda || ""));
-        setTxt('login-alamat', res.Alamat || ""); // Boleh dihapus jika alamat tdk dipakai di login
-        
-        // 2. Kop Surat (Laporan Cetak)
-        setTxt('print-pemda', res.Pemda || "PEMERINTAH DAERAH");
-        setTxt('print-dinas', res.Nama_Dinas || "NAMA INSTANSI");
-        setTxt('print-alamat', res.Alamat || "");
-       
-       let kontakInfo = [];
-if(res.Email_Dinas) kontakInfo.push(res.Email_Dinas);
-if(res.Telp_Dinas) kontakInfo.push(res.Telp_Dinas);
-if(res.Web_Dinas) kontakInfo.push(res.Web_Dinas);
-setHtml('print-kontak', kontakInfo.join(" | "));
-
-// --- MENGISI LINK KONTAK ADMIN DI HALAMAN LOGIN ---
-        let elWa = document.getElementById('link-wa-admin');
-        let elTelp = document.getElementById('link-telp-admin');
-        let elEmail = document.getElementById('link-email-admin');
-        
-        if (elWa && res.HP_Admin) {
-          // Ganti angka '0' di depan dengan kode negara '62' agar WA otomatis terbuka
-          let noWa = res.HP_Admin.startsWith('0') ? '62' + res.HP_Admin.substring(1) : res.HP_Admin;
-          elWa.href = "https://wa.me/" + noWa;
-        }
-        if (elTelp && res.Telp_Dinas) {
-          elTelp.href = "tel:" + res.Telp_Dinas;
-        }
-        if (elEmail && res.Email_Dinas) {
-          elEmail.href = "mailto:" + res.Email_Dinas;
-        }
-        // --------------------------------------------------
-
-        // 3. Render Logo Instansi (Kiri)
-        if(res.Logo_Instansi_URL) {
-          ['landing-logo-instansi', 'print-logo-instansi', 'preview-logo-instansi'].forEach(id => {
-            let el = document.getElementById(id);
-            if(el) { el.src = res.Logo_Instansi_URL; el.classList.remove('hidden'); }
-          });
-          setVal('set-logo-instansi-base64', res.Logo_Instansi_URL);
-        }
-
-        // 4. Render Logo Dinas (Kanan)
-        if(res.Logo_URL) {
-          ['landing-logo-dinas', 'preview-logo-dinas'].forEach(id => {
-            let el = document.getElementById(id);
-            if(el) { el.src = res.Logo_URL; el.classList.remove('hidden'); }
-          });
-          setVal('set-logo-dinas-base64', res.Logo_URL);
-        }
-
-        // Render Header Khusus HP & Sidebar Desktop
-        if(res.Logo_Instansi_URL) {
-          // Untuk HP
-          let logoHp = document.getElementById('mobile-header-logo');
-          if(logoHp) { logoHp.src = res.Logo_Instansi_URL; logoHp.classList.remove('hidden'); }
-          
-          // Untuk Sidebar Laptop
-          let logoSidebar = document.getElementById('sidebar-logo');
-          if(logoSidebar) { logoSidebar.src = res.Logo_Instansi_URL; logoSidebar.classList.remove('hidden'); }
-        }
-        
-        // Set teks nama dinas di HP dan Laptop
-        setTxt('mobile-header-dinas', res.Nama_Dinas || "Dinas Pendidikan");
-        setTxt('sidebar-dinas', res.Nama_Dinas || "Dinas Pendidikan");
-        
-        // 5. ISI ULANG KOTAK INPUT DI HALAMAN PENGATURAN ADMIN
-        setVal('set-pemda', res.Pemda || "");
-        setVal('set-nama', res.Nama_Dinas || "");
-        setVal('set-alamat', res.Alamat || "");
-        setVal('set-email', res.Email_Dinas || "");
-        setVal('set-telp', res.Telp_Dinas || "");
-        setVal('set-web', res.Web_Dinas || "");
-        setVal('set-hp', res.HP_Admin || "");
-
-        // TAMBAHAN: Panggil List Unit Kerja saat web dimuat
-        loadUnitKerjaList();
-
-    }).getSettings();
-  }
 
  // --- LOGIC CROP LOGO (Transparan & Ukuran Aman) ---
   function prosesLogo(event, inputHiddenId, imgPreviewId) {
@@ -856,22 +762,6 @@ setHtml('print-kontak', kontakInfo.join(" | "));
       ['form-jab-sk', 'form-jab-tmt', 'form-jab-lama', 'form-jab-baru', 'form-jab-tunj'].forEach(id => document.getElementById(id).setAttribute('required', 'true'));
     }
   }
-
-  
-
-  function kirimDataKeBackend(payload) {
-    showLoading(true);
-    google.script.run.withSuccessHandler(function(res) {
-      showLoading(false);
-      if(res.success) {
-        Swal.fire('Berhasil', res.message, 'success');
-        document.getElementById('form-submit-usulan').reset();
-        navigate('status-usulan');
-      } else Swal.fire('Gagal', res.message, 'error');
-    }).submitUsulan(payload);
-  }
-
-
 
 
   function ubahHalUsulan(arah) {
