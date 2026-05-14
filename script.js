@@ -140,6 +140,7 @@ async function navigate(viewName) {
     toggleMobileMenu();
   }
 }
+
 async function loadSettingsInit() {
   try {
     const resAPI = await callAPI('getSettings');
@@ -207,6 +208,14 @@ async function loadSettingsInit() {
     setVal('set-telp', res.Telp_Dinas || "");
     setVal('set-web', res.Web_Dinas || "");
     setVal('set-hp', res.HP_Admin || "");
+
+    // Isi kolom TTD (Jika sudah pernah disimpan)
+    setVal('set-ttd-kepala-nama', res.TTD_Kepala_Nama || "");
+    setVal('set-ttd-kepala-pangkat', res.TTD_Kepala_Pangkat || "");
+    setVal('set-ttd-kepala-nip', res.TTD_Kepala_NIP || "");
+    setVal('set-ttd-bendahara-nama', res.TTD_Bendahara_Nama || "");
+    setVal('set-ttd-bendahara-pangkat', res.TTD_Bendahara_Pangkat || "");
+    setVal('set-ttd-bendahara-nip', res.TTD_Bendahara_NIP || "");
 
     // Panggil Dropdown Unit Kerja
     loadUnitKerjaList();
@@ -565,18 +574,29 @@ async function simpanPengaturan() {
   const wb = document.getElementById('set-web').value;
   const hp = document.getElementById('set-hp').value;
   
+  // TAMBAHAN: Data TTD
+  const ttdData = {
+    kNama: document.getElementById('set-ttd-kepala-nama').value,
+    kPangkat: document.getElementById('set-ttd-kepala-pangkat').value,
+    kNip: document.getElementById('set-ttd-kepala-nip').value,
+    bNama: document.getElementById('set-ttd-bendahara-nama').value,
+    bPangkat: document.getElementById('set-ttd-bendahara-pangkat').value,
+    bNip: document.getElementById('set-ttd-bendahara-nip').value,
+  };
+  
   showLoading(true);
   try {
-    const res = await callAPI('saveSettings', { pemda: p, nama: n, alamat: a, logoInstansi: logoI, logoDinas: logoD, email: em, telp: tlp, web: wb, hp: hp });
+    const res = await callAPI('saveSettings', { 
+      pemda: p, nama: n, alamat: a, logoInstansi: logoI, logoDinas: logoD, email: em, telp: tlp, web: wb, hp: hp, ttd: ttdData 
+    });
     showLoading(false);
     if (res.success) {
       Swal.fire('Berhasil', res.message, 'success'); 
-      loadSettingsInit(); // Memanggil fungsi pembaruan tampilan
+      loadSettingsInit(); 
     } else {
       Swal.fire('Gagal', res.message, 'error');
     }
   } catch (err) {
-    // TAMBAHAN: Mencetak error asli ke console agar mudah dilacak
     console.error("Detail Error Sistem:", err); 
     showLoading(false);
     Swal.fire('Error Sistem', 'Gagal mengirim data.', 'error');
@@ -1292,10 +1312,7 @@ function bukaEditASN(item) {
   }
 
 
-
-// --- FUNGSI UNDUH LAPORAN EXCEL (FORMAT BAKU BKD) ---
-  // --- FUNGSI UNDUH LAPORAN EXCEL BKD ---
-  function unduhLaporanExcel() {
+function unduhLaporanExcel() {
     if (laporanFilteredList.length === 0) return Swal.fire('Data Kosong', `Tidak ada usulan untuk didownload pada bulan dan tahun ini.`, 'info');
 
     const bulan = document.getElementById('filter-lap-bulan').value;
@@ -1304,13 +1321,31 @@ function bukaEditASN(item) {
     const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
     const namaBulan = monthNames[parseInt(bulan) - 1];
 
+    // Ambil Data TTD (Beri nilai default jika belum diatur)
+    const kNama = document.getElementById('set-ttd-kepala-nama')?.value || "NAMA KEPALA DINAS";
+    const kPangkat = document.getElementById('set-ttd-kepala-pangkat')?.value || "Pembina Utama Madya (IV/d)";
+    const kNip = document.getElementById('set-ttd-kepala-nip')?.value || "NIP. 19700101 200001 1 001";
+    const bNama = document.getElementById('set-ttd-bendahara-nama')?.value || "NAMA BENDAHARA";
+    const bPangkat = document.getElementById('set-ttd-bendahara-pangkat')?.value || "Penata Tk.I (III/d)";
+    const bNip = document.getElementById('set-ttd-bendahara-nip')?.value || "NIP. 19800101 201001 2 001";
+
+    // Header Laporan Sesuai Gambar
     let aoa = [
-      ['DAFTAR FORMULIR PEREMAJAAN DATA MUTASI GAJI PEGAWAI (Pangkat/Berkala)'], [dinas.toUpperCase()], [`BULAN ${namaBulan.toUpperCase()} TAHUN ${tahun}`], [],
-      ['NO.', 'NAMA / NIP', 'PANGKAT / GOLONGAN', 'JENIS', 'DATA MUTASI', '', 'TMT', 'KETERANGAN'], ['', '', '', '', 'LAMA', 'BARU', '', ''], ['1', '2', '3', '4', '5', '6', '7', '8']
+      ['DAFTAR FORMULIR PEREMAJAAN DATA MUTASI GAJI PEGAWAI (Pangkat/Berkala)', '', '', '', '', '', '', ''], 
+      [dinas.toUpperCase(), '', '', '', '', '', '', ''], 
+      [`BULAN ${namaBulan.toUpperCase()} TAHUN ${tahun}`, '', '', '', '', '', '', ''], 
+      ['', '', '', '', '', '', '', ''], // Baris Kosong
+      // Baris Header Tabel
+      ['NO.', 'NAMA / NIP', 'PANGKAT / GOLONGAN', 'JENIS', 'DATA MUTASI', '', 'TMT', 'KETERANGAN'], 
+      ['', '', '', '', 'LAMA', 'BARU', '', ''], 
+      ['1', '2', '3', '4', '5', '6', '7', '8']
     ];
 
+    // Mengisi Data
     laporanFilteredList.forEach((item, index) => {
       let detail = {}; try { detail = JSON.parse(item.detail); } catch(e) {}
+      
+      // Menggunakan \n agar tulisan atas-bawah
       let namaNip = `${item.nama}\nNip. ${item.nip}`;
       let pangkat = detail.golongan_usulan || '-';
       let jenis = item.jenis;
@@ -1325,16 +1360,44 @@ function bukaEditASN(item) {
           lamaText = `${detail.golongan_lama || '-'}\nRp ${detail.gaji_lama || '-'}`; baruText = `${detail.golongan_baru || '-'}\nRp ${detail.gaji_baru || '-'}`; tmtSk = detail.tmt_pangkat || '-'; jenis = "Kenaikan Pangkat\nKenaikan Gapok";
       } else if (jenis === 'Perubahan Jabatan') {
           lamaText = `${detail.jabatan_lama || '-'}`; baruText = `${detail.jabatan_baru || '-'}\nRp ${detail.tunjangan_jabatan || '-'}`; tmtSk = detail.tmt_jabatan || '-';
-      } else if (jenis === 'Perubahan Tunjangan Keluarga') {
-          lamaText = `${detail.status_lama || '-'}`; baruText = `${detail.status_baru || '-'}`;
       }
       let ket = `${detail.unit_usulan || '-'}\n(TMT SK ${tmtSk})`;
+      
       aoa.push([ (index + 1).toString(), namaNip, pangkat, jenis, lamaText, baruText, tmtText, ket ]);
     });
 
+    // Menambahkan Blok Tanda Tangan di Bawah Tabel
+    aoa.push(['', '', '', '', '', '', '', '']); // Baris Kosong
+    aoa.push(['', '', '', '', '', '', '', `Jambi, .................... ${tahun}`]); // Tanggal
+    aoa.push(['', 'Bendahara Pengeluaran', '', '', '', '', '', 'Kepala Dinas Pendidikan']); 
+    aoa.push(['', 'Provinsi Jambi', '', '', '', '', '', 'Provinsi Jambi']);
+    aoa.push(['', '', '', '', '', '', '', '']); // Jarak TTD
+    aoa.push(['', '', '', '', '', '', '', '']); 
+    aoa.push(['', '', '', '', '', '', '', '']); 
+    aoa.push(['', bNama, '', '', '', '', '', kNama]);
+    aoa.push(['', bPangkat, '', '', '', '', '', kPangkat]);
+    aoa.push(['', bNip, '', '', '', '', '', kNip]);
+
+    // Membuat Lembar Kerja Excel (Worksheet)
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!merges'] = [ { s: {r:0, c:0}, e: {r:0, c:7} }, { s: {r:1, c:0}, e: {r:1, c:7} }, { s: {r:2, c:0}, e: {r:2, c:7} }, { s: {r:4, c:0}, e: {r:5, c:0} }, { s: {r:4, c:1}, e: {r:5, c:1} }, { s: {r:4, c:2}, e: {r:5, c:2} }, { s: {r:4, c:3}, e: {r:5, c:3} }, { s: {r:4, c:4}, e: {r:4, c:5} }, { s: {r:4, c:6}, e: {r:5, c:6} }, { s: {r:4, c:7}, e: {r:5, c:7} } ];
-    ws['!cols'] = [ {wch: 5}, {wch: 35}, {wch: 25}, {wch: 25}, {wch: 15}, {wch: 20}, {wch: 18}, {wch: 35} ];
+    
+    // Konfigurasi Merge Cells (Menggabungkan Kolom)
+    ws['!merges'] = [ 
+      { s: {r:0, c:0}, e: {r:0, c:7} }, // Judul
+      { s: {r:1, c:0}, e: {r:1, c:7} }, // Dinas
+      { s: {r:2, c:0}, e: {r:2, c:7} }, // Bulan
+      // Merge Header Tabel
+      { s: {r:4, c:0}, e: {r:5, c:0} }, // NO
+      { s: {r:4, c:1}, e: {r:5, c:1} }, // NAMA/NIP
+      { s: {r:4, c:2}, e: {r:5, c:2} }, // PANGKAT
+      { s: {r:4, c:3}, e: {r:5, c:3} }, // JENIS
+      { s: {r:4, c:4}, e: {r:4, c:5} }, // DATA MUTASI (Membentang di atas LAMA & BARU)
+      { s: {r:4, c:6}, e: {r:5, c:6} }, // TMT
+      { s: {r:4, c:7}, e: {r:5, c:7} }  // KETERANGAN
+    ];
+    
+    // Mengatur Lebar Kolom agar Pas
+    ws['!cols'] = [ {wch: 5}, {wch: 35}, {wch: 25}, {wch: 25}, {wch: 20}, {wch: 20}, {wch: 18}, {wch: 35} ];
 
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Laporan Mutasi");
     XLSX.writeFile(wb, `Mutasi_Gaji_${namaBulan}_${tahun}.xlsx`);
