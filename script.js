@@ -76,28 +76,59 @@ async function handleLogin(e) {
 }
 
 async function navigate(viewName) {
+  // 1. Sembunyikan semua halaman, tampilkan halaman yang dituju
   document.querySelectorAll('.content-section').forEach(el => el.classList.add('view-hidden'));
   let targetEl = document.getElementById('content-' + viewName);
   if(targetEl) targetEl.classList.remove('view-hidden');
 
-  if (viewName === 'admin-pegawai') loadDataASN();
-  if (viewName === 'status-usulan') loadRiwayatUser();
-  if (viewName === 'admin-usulan' || viewName === 'admin-dashboard' || viewName === 'admin-laporan') loadDataUsulanAdmin();
+  // 2. LOGIKA KELOLA PEGAWAI (Caching)
+  if (viewName === 'admin-pegawai') {
+    if (asnDataList.length === 0) loadDataASN(); 
+    else renderTabelASN(); 
+  }
   
+  // 3. LOGIKA RIWAYAT USER
+  if (viewName === 'status-usulan') {
+    loadRiwayatUser(); 
+  }
+  
+  // =========================================================
+  // 4. LOGIKA BARU: KELOLA USULAN, DASHBOARD, & LAPORAN
+  // =========================================================
+  
+  if (viewName === 'admin-usulan') {
+    // SELALU ambil data terbaru dari server (agar tidak ada usulan yang terlewat)
+    loadDataUsulanAdmin(); 
+  } 
+  else if (viewName === 'admin-dashboard' || viewName === 'admin-laporan') {
+    // Untuk Dashboard dan Laporan, JANGAN loading ke server jika data sudah ada
+    if (allUsulanAdminList.length === 0) {
+       // Panggil server HANYA jika admin baru pertama kali login dan data masih kosong mutlak
+       loadDataUsulanAdmin(); 
+    } else {
+       // Render instan dari memori (0 detik, sangat cepat!)
+       if (viewName === 'admin-dashboard') renderGrafikAdmin();
+       if (viewName === 'admin-laporan') previewLaporan();
+    }
+  }
+  // =========================================================
+
+  // 5. Mengisi pengaturan admin diam-diam (tanpa layar loading)
   if (viewName === 'admin-setting' && currentUser) {
     document.getElementById('set-admin-nip').value = currentUser.nip;
     document.getElementById('set-admin-nama').value = currentUser.nama;
     try {
-      const pass = await callAPI('getPasswordAdmin', { nip: currentUser.nip });
-      document.getElementById('set-admin-pass').value = pass;
+      callAPI('getPasswordAdmin', { nip: currentUser.nip }).then(pass => {
+         document.getElementById('set-admin-pass').value = pass;
+      });
     } catch(e) {}
   }
 
+  // 6. Update data text ringan di Dashboard
   if (viewName === 'admin-dashboard' && currentUser) {
     const elNamaAdmin = document.getElementById('dash-admin-nama');
     if(elNamaAdmin) elNamaAdmin.innerText = currentUser.nama.split(" ")[0]; 
   }
-
   if (viewName === 'user-dashboard' && currentUser) {
     const elNama = document.getElementById('dash-user-nama');
     if(elNama) elNama.innerText = currentUser.nama.split(" ")[0]; 
@@ -105,6 +136,7 @@ async function navigate(viewName) {
     if(elStatus) elStatus.innerText = currentUser.status + " (" + currentUser.golongan + ")";
   }
 
+  // 7. Update profil pegawai diam-diam
   if (viewName === 'user-profil' && currentUser) {
     document.getElementById('prof-nip').value = currentUser.nip;
     document.getElementById('prof-nama').value = currentUser.nama;
@@ -117,11 +149,10 @@ async function navigate(viewName) {
        document.getElementById('prof-email').value = currentUser.email !== "-" ? currentUser.email : "";
     }
     
-    try {
-      const res = await callAPI('getSemuaASN');
+    callAPI('getSemuaASN').then(res => {
       let userDb = res.data.find(i => i.nip.toString() === currentUser.nip.toString());
       if(userDb) document.getElementById('prof-pass').value = userDb.password;
-    } catch(e){}
+    }).catch(e=>{});
 
     renderDropdownGolonganUser(currentUser.status, currentUser.golongan);
   }
@@ -135,6 +166,7 @@ async function navigate(viewName) {
     inisiasiFormUpload();
   }
 
+  // Tutup menu sidebar saat di mode HP
   const sidebar = document.getElementById('sidebar');
   if (sidebar && !sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) {
     toggleMobileMenu();
@@ -356,27 +388,35 @@ async function simpanProfilUser(e) {
 }
 
 async function loadRiwayatUser() {
-  showLoading(true);
+  const tbody = document.getElementById('table-riwayat-body');
+  
+  // Tampilkan indikator loading di dalam tabel tanpa menutup seluruh layar
+  tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-blue-600 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil riwayat...</td></tr>';
+  
   try {
     const data = await callAPI('getRiwayatUsulan', { nip: currentUser.nip });
-    showLoading(false);
-    const tbody = document.getElementById('table-riwayat-body');
-    tbody.innerHTML = '';
-    if(data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Belum ada usulan diajukan.</td></tr>'; return; }
+    tbody.innerHTML = ''; 
+    
+    if(data.length === 0) { 
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">Belum ada usulan yang diajukan.</td></tr>'; 
+      return; 
+    }
     
     data.forEach(item => {
       let badge = item.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : (item.status === 'Disetujui' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800');
       tbody.innerHTML += `
-        <tr class="border-b">
-          <td class="p-3 font-semibold text-xs">${item.id}</td>
+        <tr class="border-b hover:bg-gray-50">
+          <td class="p-3 font-semibold text-xs text-gray-600">${item.id}</td>
           <td class="p-3 text-sm">${item.tanggal}</td>
-          <td class="p-3 text-sm">${item.jenis}</td>
+          <td class="p-3 text-sm font-semibold">${item.jenis}</td>
           <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${badge}">${item.status}</span></td>
-          <td class="p-3 text-sm italic">${item.catatan || '-'}</td>
+          <td class="p-3 text-sm italic text-gray-500">${item.catatan || '-'}</td>
         </tr>
       `;
     });
-  } catch(err) { showLoading(false); }
+  } catch(err) { 
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-red-500 font-bold">Gagal memuat data dari server.</td></tr>'; 
+  }
 }
 
 async function loadDataUsulanAdmin() {
@@ -1378,11 +1418,16 @@ async function unduhLaporanExcel() {
         // Menambahkan Baris Angka (Indeks Kolom) di Baris ke-7
         sheet.addRow([1, 2, 3, 4, 5, 6, 7, 8]);
 
+        // Fungsi bantuan untuk memformat angka menjadi format Rupiah dengan titik
+        const formatRp = (angka) => {
+            if (!angka || isNaN(angka)) return '-';
+            return 'Rp ' + new Intl.NumberFormat('id-ID').format(angka);
+        };
+
         // 5. Memasukkan Data Pegawai
         laporanFilteredList.forEach((item, index) => {
             let detail = {}; try { detail = JSON.parse(item.detail); } catch(e) {}
             
-            // Format teks atas-bawah menggunakan \n
             let namaNip = `${item.nama}\nNip. ${item.nip}`;
             let pangkat = detail.golongan_usulan || '-';
             let jenis = item.jenis;
@@ -1392,13 +1437,20 @@ async function unduhLaporanExcel() {
 
             let lamaText = '-', baruText = '-', tmtSk = '';
             
-            // Menyesuaikan format tampilan berdasarkan jenis usulan
+            // PENERAPAN FORMAT RUPIAH DI SINI
             if (jenis === 'Kenaikan Gaji Berkala (KGB)') {
-                lamaText = `Rp ${detail.gaji_lama || '-'}`; baruText = `Rp ${detail.gaji_baru || '-'}`; tmtSk = detail.tmt || '-';
+                lamaText = `${formatRp(detail.gaji_lama)}`; 
+                baruText = `${formatRp(detail.gaji_baru)}`; 
+                tmtSk = detail.tmt || '-';
             } else if (jenis === 'Kenaikan Pangkat') {
-                lamaText = `${detail.golongan_lama || '-'}\nRp ${detail.gaji_lama || '-'}`; baruText = `${detail.golongan_baru || '-'}\nRp ${detail.gaji_baru || '-'}`; tmtSk = detail.tmt_pangkat || '-'; jenis = "Kenaikan Pangkat\nKenaikan Gapok";
+                lamaText = `${detail.golongan_lama || '-'}\n${formatRp(detail.gaji_lama)}`; 
+                baruText = `${detail.golongan_baru || '-'}\n${formatRp(detail.gaji_baru)}`; 
+                tmtSk = detail.tmt_pangkat || '-'; 
+                jenis = "Kenaikan Pangkat\nKenaikan Gapok";
             } else if (jenis === 'Perubahan Jabatan') {
-                lamaText = `${detail.jabatan_lama || '-'}`; baruText = `${detail.jabatan_baru || '-'}\nRp ${detail.tunjangan_jabatan || '-'}`; tmtSk = detail.tmt_jabatan || '-';
+                lamaText = `${detail.jabatan_lama || '-'}`; 
+                baruText = `${detail.jabatan_baru || '-'}\n${formatRp(detail.tunjangan_jabatan)}`; 
+                tmtSk = detail.tmt_jabatan || '-';
             }
             let ket = `${detail.unit_usulan || '-'}\n(TMT SK ${tmtSk})`;
             
