@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Perubahan Gaji</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Memanggil file CSS eksternal -->
+  <link rel="stylesheet" href="style.css">
+
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
+
+  <div id="loading-overlay" class="view-hidden">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+    <p class="text-lg font-semibold text-gray-700">Memproses...</p>
+  </div>
+
+   <!-- ============================================== -->
+  <!-- 1. VIEW LANDING PAGE (HALAMAN DEPAN)           -->
+  <!-- ============================================== -->
+  <div id="view-landing" class="min-h-screen flex items-center justify-center bg-cover bg-center relative" style="background-image: url('https://lh3.googleusercontent.com/p/AF1QipPv38-HCU_7GtYRBJ8yBAwcMoDQv4jJSJki--JO=s1360-w1360-h1020-rw?q=80&w=2069&auto=format&fit=crop');">
+    
+    <!-- Overlay Abu-abu Tipis -->
+    <div class="absolute inset-0 bg-gray-200 bg-opacity-90"></div> 
+    
+    <!-- Kotak Dibuat Lebih Lembut (rounded-3xl, shadow lebih soft, border dihilangkan) -->
+    <div class="bg-white/95 backdrop-blur-sm rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.06)] p-8 w-full max-w-lg text-center relative z-10 mx-4 border border-gray-100">
+
+     <!-- Area Logo -->
+      <div class="flex justify-center items-center gap-6 mb-4">
+        <img id="landing-logo-instansi" src="" class="h-20 w-20 hidden object-contain drop-shadow-md animate-float">
+        <img id="landing-logo-dinas" src="" class="h-20 w-20 hidden object-contain drop-shadow-md animate-float" style="animation-delay: 1.5s;">
+      </div>
+      
+      <!-- Identitas Instansi -->
+      <p class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1" id="landing-pemda">Pemerintah Provinsi</p>
+      <h1 class="text-2xl font-extrabold text-gray-800 uppercase mb-4" id="landing-dinas">Dinas</h1>
+      
+      <!-- Nama Aplikasi -->
+      <div class="bg-blue-50 py-3 rounded-lg border border-blue-200 mb-6 shadow-inner">
+        <h2 class="text-xl font-bold text-blue-800">Sistem e-UPG</h2>
+        <p class="text-xs text-blue-600 font-semibold uppercase tracking-widest mt-1"> Sistem Elektronik Usulan Perubahan Gaji</p>
+      </div>
+      
+      <!-- Tombol Masuk -->
+      <button onclick="bukaHalamanLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-300 shadow-xl text-lg flex items-center justify-center gap-2">
+        <i class="fa-solid fa-right-to-bracket"></i> Masuk Aplikasi
+      </button>
+
+      <!-- Footer Landing -->
+      <footer class="mt-8 text-center text-xs text-gray-400 no-print">
+        &copy; 2026 Sistem e-UPG DISDIK Provinsi Jambi | Hak Cipta Dilindungi.<br>
+        Created by <a href="https://wa.me/6285219901909" target="_blank" class="font-bold text-blue-400 hover:underline">Pariyanto</a> | <button type="button" onclick="bukaModalPrivasi()" class="hover:text-blue-400 hover:underline transition">Kebijakan Privasi</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- 2. VIEW LOGIN                                  -->
+  <!-- ============================================== -->
+  <!-- Tambahkan bg-gradient-gerak di sini -->
+  <div id="view-login" class="view-hidden min-h-screen flex items-center justify-center bg-gradient-gerak p-4 relative">
+    
+    <!-- Tombol Kembali -->
+    <button onclick="kembaliKeLanding()" class="absolute top-6 left-6 bg-white/80 backdrop-blur text-gray-700 px-4 py-2 rounded-xl shadow-sm hover:bg-white hover:text-blue-700 font-bold flex items-center gap-2 transition">
+      <i class="fa-solid fa-arrow-left"></i> Kembali
+    </button>
+
+    <!-- Kotak Login Dibuat Lebih Lembut -->
+    <div class="bg-white/95 backdrop-blur-sm rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.06)] p-8 w-full max-w-md text-center relative border border-gray-100">
+      
+      <!-- Logo Kustom di Halaman Login -->
+      <div class="mb-4 mt-2 mx-auto w-24 h-24 flex items-center justify-center">
+        <!-- GANTI URL_GAMBAR_KAMU_DISINI dengan link gambar (JPG/PNG) yang kamu inginkan -->
+        <img src="https://i.ibb.co.com/XfB0JjQP/logo-e-upg-disdik.png" alt="Logo Login" class="w-full h-full object-contain drop-shadow-md">
+      </div>
+      
+      <h1 class="text-2xl font-extrabold text-gray-800 mb-1">Sistem e-UPG <br> DINAS PENDIDIKAN</h1>
+      <p class="text-gray-500 text-sm mb-6">Silakan masuk menggunakan akun Anda</p>
+      
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <div class="mb-4 text-left">
+          <label class="block text-gray-700 text-sm font-bold mb-2">NIP / Username</label>
+          <input id="nip" type="text" class="shadow border rounded w-full py-3 px-4 focus:ring-2 focus:ring-blue-500" placeholder="Ketik NIP Admin / Pegawai" required>
+        </div>
+        <div class="mb-2 text-left relative">
+          <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+          <input id="password" type="password" class="shadow border rounded w-full py-3 px-4 pr-10 focus:ring-2 focus:ring-blue-500" placeholder="********" required>
+          <button type="button" onclick="togglePasswordInput('password', 'eye-icon-login')" class="absolute right-3 top-9 text-gray-500 hover:text-blue-600 focus:outline-none">
+            <i id="eye-icon-login" class="fa-solid fa-eye text-lg"></i>
+          </button>
+        </div>
+        
+        <!-- Tombol Lupa Password -->
+        <div class="mb-6 text-right">
+          <button type="button" onclick="lupaPassword()" class="text-xs text-blue-600 hover:text-blue-800 hover:underline font-bold"><i class="fa-solid fa-circle-question"></i> Lupa Password?</button>
+        </div>
+        
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-lg text-lg mb-6">Masuk</button>
+        
+        <!-- Tambahan 3 Tombol Aksi di Bawah Login -->
+        <div class="flex justify-center gap-6 text-xs font-bold text-gray-500 border-t pt-5 border-gray-200">
+          <button type="button" onclick="bukaModalInstall()" class="hover:text-blue-600 flex flex-col items-center gap-1 transition">
+            <i class="fa-solid fa-download text-lg mb-1"></i> Install
+          </button>
+          <button type="button" onclick="bukaModalKontak()" class="hover:text-green-600 flex flex-col items-center gap-1 transition">
+            <i class="fa-solid fa-headset text-lg mb-1"></i> Hubungi Admin
+          </button>
+          <button type="button" onclick="bukaModalPrivasi()" class="hover:text-purple-600 flex flex-col items-center gap-1 transition">
+            <i class="fa-solid fa-shield-halved text-lg mb-1"></i> Privasi Policy
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- VIEW APLIKASI UTAMA -->
+  <div id="view-app" class="view-hidden h-screen w-full flex flex-col overflow-hidden relative bg-gray-50">
+
+    <!-- HEADER KHUSUS HP (TOP BAR) -->
+    <div class="md:hidden bg-blue-900 text-white p-3 flex justify-between items-center z-40 shadow-md w-full">
+      <!-- Sisi Kiri: Logo dan Teks Instansi -->
+      <div class="flex items-center gap-3">
+        <img id="mobile-header-logo" src="" class="w-10 h-10 object-contain hidden bg-white rounded-full p-1 border border-blue-300" alt="Logo Instansi">
+        <div class="flex flex-col">
+          <span class="font-bold text-lg leading-none"><i class="fa-solid fa-wallet"></i> e-UPG</span>
+          <span class="text-[10px] text-blue-200 mt-1 uppercase font-semibold tracking-wider" id="mobile-header-dinas">Dinas Pendidikan</span>
+        </div>
+      </div>
+      
+      <!-- Sisi Kanan: Tombol Setting Atas (Hanya Muncul Untuk Admin) -->
+      <button id="btn-setting-mobile" onclick="navigate('admin-setting')" class="text-white hover:text-blue-300 view-hidden transition">
+        <i class="fa-solid fa-gear text-xl"></i>
+      </button>
+    </div>
+
+    <div class="flex-1 flex overflow-hidden relative w-full">
+
+    <!-- SIDEBAR DESKTOP (Tersembunyi di HP, muncul di Laptop) -->
+      <aside id="sidebar" class="hidden md:flex bg-blue-900 text-white w-64 flex-shrink-0 shadow-lg z-40 flex-col h-full transition-transform no-print">
+        
+        <!-- BAGIAN HEADER SIDEBAR (Logo, Identitas Instansi, & Info User) -->
+        <div class="p-6 border-b border-blue-800 flex flex-col">
+          
+          <!-- Area Identitas Aplikasi & Instansi -->
+          <div class="flex items-center gap-3 mb-5">
+            <img id="sidebar-logo" src="" class="w-12 h-12 object-contain hidden bg-white rounded-full p-1 border-2 border-blue-300 shadow-md" alt="Logo Instansi">
+            <div class="flex flex-col">
+              <span class="font-bold text-xl leading-none"><i class="fa-solid fa-wallet"></i> e-UPG</span>
+              <span class="text-[10px] text-blue-200 mt-1 uppercase font-semibold tracking-wider" id="sidebar-dinas">Nama Instansi</span>
+            </div>
+          </div>
+          
+          <!-- Area Info Pengguna (Nama & Role) -->
+          <div class="bg-blue-800/60 p-3 rounded-lg w-full border border-blue-700/50">
+            <p class="text-sm text-blue-50 font-bold truncate" id="sidebar-name">Nama Pengguna</p>
+            <div class="flex items-center justify-between mt-1">
+              <span id="sidebar-nip" class="text-xs text-blue-300 font-mono">NIP</span>
+              <span id="sidebar-role" class="bg-yellow-500 text-blue-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow-sm">Role</span>
+            </div>
+          </div>
+
+        </div>
+        
+        <!-- MENU USER (Tetap sama) -->
+        <nav id="menu-user" class="p-4 space-y-2 view-hidden flex-1 overflow-y-auto">
+          <div class="text-xs text-blue-400 font-bold mb-2 uppercase tracking-wider">Layanan Pegawai</div>
+          <button onclick="navigate('user-dashboard')" class="w-full flex items-center p-3 hover:bg-blue-800 rounded transition text-left"><i class="fa-solid fa-house w-6"></i> Dashboard</button>
+          <button onclick="navigate('user-profil')" class="w-full flex items-center p-3 hover:bg-blue-800 rounded transition text-left"><i class="fa-solid fa-user-tie w-6"></i> Profil Saya</button>
+          <button onclick="navigate('form-usulan')" class="w-full flex items-center p-3 hover:bg-blue-800 rounded transition text-left"><i class="fa-solid fa-file-signature w-6"></i> Usul Perubahan</button>
+          <button onclick="navigate('status-usulan')" class="w-full flex items-center p-3 hover:bg-blue-800 rounded transition text-left"><i class="fa-solid fa-clock-rotate-left w-6"></i> Riwayat Status</button>
+        </nav>
+
+        <!-- MENU ADMIN (Tetap sama) -->
+        <nav id="menu-admin" class="p-4 space-y-2 view-hidden flex-1 overflow-y-auto">
+          <div class="text-xs text-yellow-400 font-bold mb-2 uppercase tracking-wider">Administrator</div>
+          <button onclick="navigate('admin-dashboard')" class="w-full flex items-center p-3 hover:bg-blue-800 rounded transition text-left"><i class="fa-solid fa-chart-pie w-6"></i> Dashboard</button>
+          <button onclick="navigate('admin-usulan')" class="w-full flex items-center p-3 hover:bg-blue-800 rounded transition text-left"><i class="fa-solid fa-inbox w-6"></i> Kelola Usulan</button>
+          <button onclick="navigate('admin-pegawai')" class="w-full flex items-center p-3 hover:bg-blue-800 rounded transition text-left"><i class="fa-solid fa-users w-6"></i> Kelola Pegawai</button>
+          <button onclick="navigate('admin-laporan')" class="w-full flex items-center p-3 hover:bg-blue-800 rounded transition text-left"><i class="fa-solid fa-print w-6"></i> Cetak Laporan</button>
+          <button onclick="navigate('admin-setting')" class="w-full flex items-center p-3 hover:bg-blue-800 rounded transition text-left"><i class="fa-solid fa-gear w-6"></i> Pengaturan</button>
+        </nav>
+
+        <div class="p-4 border-t border-blue-800">
+          <button onclick="handleLogout()" class="w-full flex items-center p-3 text-red-300 hover:bg-red-700 hover:text-white rounded transition text-left"><i class="fa-solid fa-right-from-bracket w-6"></i> Keluar</button>
+        </div>
+      </aside>
+
+     <!-- KONTEN UTAMA -->
+      <!-- Tambahkan pb-24 agar konten paling bawah tidak tertutup oleh Navigasi Bawah HP -->
+      <main class="flex-1 w-full h-full p-4 md:p-6 pb-24 md:pb-6 overflow-y-auto bg-gray-50 flex flex-col" id="main-area">
+
+        <!-- KONTEN: DASHBOARD USER / PEGAWAI -->
+      <div id="content-user-dashboard" class="content-section view-hidden">
+        <!-- Banner Selamat Datang -->
+        <div class="bg-gradient-to-r from-blue-700 to-blue-500 rounded-2xl p-6 text-white mb-6 shadow-lg relative overflow-hidden">
+          <div class="relative z-10">
+            <h2 class="text-2xl font-bold mb-2">Selamat Datang, <span id="dash-user-nama" class="text-yellow-300">Pegawai</span>! 👋</h2>
+            <p class="text-blue-100 text-sm md:w-3/4">Selamat datang di Sistem Elektronik Usulan Perubahan Gaji (e-UPG). Pantau dan kelola usulan perubahan gaji, pangkat, dan jabatan Anda dengan cepat dan transparan.</p>
+          </div>
+          <i class="fa-solid fa-file-invoice-dollar absolute -right-4 -bottom-4 text-8xl text-white opacity-20 z-0"></i>
+        </div>
+
+        <!-- Kartu Informasi & Jalan Pintas -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+            <div class="bg-blue-100 p-4 rounded-full text-blue-600"><i class="fa-solid fa-user-tie text-2xl"></i></div>
+            <div>
+              <p class="text-xs text-gray-500 font-bold uppercase mb-1">Status Anda Saat Ini</p>
+              <p class="font-bold text-gray-800 text-lg" id="dash-user-status">-</p>
+            </div>
+          </div>
+          
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-gray-500 font-bold uppercase mb-1">Usulan Mutasi</p>
+              <p class="font-bold text-gray-800 text-sm">Ajukan Berkas Baru</p>
+            </div>
+            <button onclick="navigate('form-usulan')" class="bg-yellow-500 text-white px-5 py-2 rounded-lg font-bold hover:bg-yellow-600 shadow-md transition transform hover:scale-105"><i class="fa-solid fa-plus mr-1"></i> Buat Usulan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. KONTEN: PROFIL SAYA (Layar Sudah Diperlebar Penuh) -->
+      <div id="content-user-profil" class="content-section view-hidden">
+        <h2 class="text-2xl font-bold mb-4">Profil Pegawai</h2>
+        <div class="bg-white p-6 rounded-xl shadow border w-full">
+          <p class="text-sm text-gray-500 mb-6 border-b pb-4">Perbarui data jabatan, pangkat, atau password Anda di sini. Data ini akan tersinkronisasi otomatis dengan database Administrator.</p>
+          <form id="form-profil-user" onsubmit="simpanProfilUser(event)">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-gray-50 p-4 rounded border">
+              <div><label class="block font-bold mb-1 text-xs text-gray-500">NIP (Readonly)</label><input type="text" id="prof-nip" class="w-full border p-2 rounded bg-gray-200 font-bold" readonly></div>
+              <div><label class="block font-bold mb-1 text-xs text-gray-500">Nama Lengkap (Readonly)</label><input type="text" id="prof-nama" class="w-full border p-2 rounded bg-gray-200 font-bold" readonly></div>
+              <div class="md:col-span-2"><label class="block font-bold mb-1 text-xs text-gray-500">Status ASN (Readonly)</label><input type="text" id="prof-status" class="w-full border p-2 rounded bg-gray-200 font-bold text-blue-600" readonly></div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div><label class="block font-bold mb-1 text-sm text-gray-700">Pangkat / Golongan</label><select id="prof-golongan" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" required></select></div>
+              <div><label class="block font-bold mb-1 text-sm text-gray-700">Jabatan Saat Ini</label><input type="text" id="prof-jabatan" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" required></div>
+              <div>
+                <label class="block font-bold mb-1 text-sm text-gray-700">Unit Kerja / Instansi</label>
+                <input type="text" id="prof-unit" list="data-unit-kerja" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" required placeholder="Ketik nama unit...">
+              </div>
+              <div>
+                <label class="block font-bold mb-1 text-sm text-gray-700">Kabupaten / Kota</label>
+                <select id="prof-kabkota" required class="w-full border p-2 rounded">
+                  <option value="Kantor Dinas">Kantor Dinas</option><option value="Kota Jambi">Kota Jambi</option><option value="Kota Sungai Penuh">Kota Sungai Penuh</option><option value="Kabupaten Batanghari">Kabupaten Batanghari</option><option value="Kabupaten Bungo">Kabupaten Bungo</option><option value="Kabupaten Kerinci">Kabupaten Kerinci</option><option value="Kabupaten Merangin">Kabupaten Merangin</option><option value="Kabupaten Muaro Jambi">Kabupaten Muaro Jambi</option><option value="Kabupaten Sarolangun">Kabupaten Sarolangun</option><option value="Kabupaten Tanjung Jabung Barat">Kabupaten Tanjung Jabung Barat</option><option value="Kabupaten Tanjung Jabung Timur">Kabupaten Tanjung Jabung Timur</option><option value="Kabupaten Tebo">Kabupaten Tebo</option>
+                </select>
+              </div>
+              <div class="md:col-span-2">
+  <label class="block font-bold mb-1 text-sm text-red-600">Ubah Password Login</label>
+  <div class="relative">
+    <input type="password" id="prof-pass" class="w-full border p-2 rounded border-red-300 focus:ring-2 focus:ring-red-500 pr-10" required>
+    <button type="button" onclick="togglePasswordInput('prof-pass', 'eye-user-prof')" class="absolute right-3 top-2 text-gray-500 hover:text-red-600 focus:outline-none">
+      <i id="eye-user-prof" class="fa-solid fa-eye text-lg"></i>
+    </button>
+  </div>
+</div>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 shadow-md"><i class="fa-solid fa-floppy-disk"></i> Simpan Pembaruan Profil</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- 2. KONTEN UPDATE: FORM USULAN (5 Readonly & Auto-Titik Gaji) -->
+      <div id="content-form-usulan" class="content-section view-hidden">
+        <h2 class="text-2xl font-bold mb-4">Ajukan Usulan Perubahan</h2>
+        <div class="bg-white p-6 rounded-xl shadow border">
+          <form id="form-submit-usulan" onsubmit="prosesSubmitUsulan(event)">
+            
+            <!-- DATA IDENTITAS (Model Accordion Buka-Tutup) -->
+            <div class="mb-6">
+              <button type="button" onclick="toggleAccordionDataDasar()" class="w-full flex justify-between items-center bg-blue-50 border border-blue-200 p-3 rounded-lg hover:bg-blue-100 transition focus:outline-none shadow-sm">
+                <h3 class="font-bold text-blue-800"><i class="fa-solid fa-id-card"></i> Data Dasar Pegawai</h3>
+                <i id="icon-accord-data-dasar" class="fa-solid fa-chevron-up text-blue-600 transition-transform duration-300"></i>
+              </button>
+              <p class="text-xs text-yellow-500 mt-2 mb-3">*Data ini terkunci otomatis. Jika ada perubahan jabatan/pangkat, silakan ubah di menu <b>Profil Saya</b>.</p>
+              
+              <!-- Wadah Accordion (Bisa Buka Tutup) -->
+              <div id="accord-data-dasar" class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border">
+                <div><label class="block font-bold mb-1 text-xs text-gray-500">NIP</label><input type="text" id="form-nip" class="w-full border p-2 rounded bg-gray-200 font-bold" readonly></div>
+                <div class="md:col-span-2"><label class="block font-bold mb-1 text-xs text-gray-500">Nama Lengkap</label><input type="text" id="form-nama" class="w-full border p-2 rounded bg-gray-200 font-bold" readonly></div>
+                <div><label class="block font-bold mb-1 text-xs text-gray-500">Pangkat / Golongan</label><input type="text" id="form-golongan" class="w-full border p-2 rounded bg-gray-200 font-bold text-blue-700" readonly></div>
+                <div><label class="block font-bold mb-1 text-xs text-gray-500">Jabatan</label><input type="text" id="form-jabatan" class="w-full border p-2 rounded bg-gray-200 font-bold text-gray-600" readonly></div>
+                <div><label class="block font-bold mb-1 text-xs text-gray-500">Unit Kerja</label><input type="text" id="form-unit" class="w-full border p-2 rounded bg-gray-200 font-bold text-gray-600" readonly></div>
+              </div>
+            </div>
+
+            <div class="mb-6 border-b-2 border-gray-200 pb-4">
+              <label class="block font-bold mb-2 text-lg text-blue-800">Pilih Jenis Usulan</label>
+              <select id="input-jenis-usulan" class="w-full border-2 border-blue-300 p-3 rounded font-bold bg-blue-50" required onchange="ubahFormDinamis()">
+                <option value="">-- Silakan Pilih Jenis Usulan --</option>
+                <option value="Kenaikan Gaji Berkala (KGB)">Kenaikan Gaji Berkala (KGB)</option>
+                <option value="Kenaikan Pangkat">Kenaikan Pangkat</option>
+                <option value="Perubahan Tunjangan Keluarga">Perubahan Tunjangan Keluarga</option>
+                <option value="Perubahan Jabatan">Perubahan Jabatan</option>
+              </select>
+            </div>
+            
+           <!-- AREA FORM DINAMIS (KGB) -->
+            <div id="area-form-kgb" class="hidden bg-yellow-50 p-5 rounded-lg border border-yellow-300 mb-6 shadow-inner">
+              <h3 class="font-bold text-yellow-800 mb-3 border-b border-yellow-200 pb-2">Detail KGB</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="block font-bold mb-1 text-sm">Nomor SK Berkala</label><input type="text" id="form-kgb-sk" class="w-full border p-2 rounded"></div>
+                <div><label class="block font-bold mb-1 text-sm">TMT Berkala</label><input type="date" id="form-kgb-tmt" class="w-full border p-2 rounded"></div>
+                <div><label class="block font-bold mb-1 text-sm">Gaji Pokok LAMA</label><div class="relative"><span class="absolute left-3 top-2 font-bold text-gray-500">Rp</span><input type="text" id="form-kgb-gaji-lama" class="w-full border p-2 pl-10 rounded" oninput="formatRupiah(this)"></div></div>
+                <div><label class="block font-bold mb-1 text-sm text-green-700">Gaji Pokok BARU</label><div class="relative"><span class="absolute left-3 top-2 font-bold text-green-600">Rp</span><input type="text" id="form-kgb-gaji-baru" class="w-full border p-2 pl-10 rounded font-bold border-green-300 bg-green-50" oninput="formatRupiah(this)"></div></div>
+              </div>
+            </div>
+
+            <!-- AREA FORM DINAMIS (PANGKAT) -->
+            <div id="area-form-pangkat" class="hidden bg-green-50 p-5 rounded-lg border border-green-300 mb-6 shadow-inner">
+              <h3 class="font-bold text-green-800 mb-3 border-b border-green-200 pb-2">Detail Kenaikan Pangkat</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div><label class="block font-bold mb-1 text-sm">Pangkat / Gol. LAMA</label><input type="text" id="form-pkt-gol-lama" placeholder="Contoh: III/a" class="w-full border p-2 rounded"></div>
+                <div><label class="block font-bold mb-1 text-sm text-green-700">Pangkat / Gol. BARU</label><input type="text" id="form-pkt-gol-baru" placeholder="Contoh: III/b" class="w-full border p-2 rounded border-green-300 bg-green-50 font-bold"></div>
+                <div><label class="block font-bold mb-1 text-sm">Gaji Pokok LAMA</label><div class="relative"><span class="absolute left-3 top-2 font-bold text-gray-500">Rp</span><input type="text" id="form-pkt-gaji-lama" class="w-full border p-2 pl-10 rounded" oninput="formatRupiah(this)"></div></div>
+                <div><label class="block font-bold mb-1 text-sm text-green-700">Gaji Pokok BARU</label><div class="relative"><span class="absolute left-3 top-2 font-bold text-green-600">Rp</span><input type="text" id="form-pkt-gaji-baru" class="w-full border p-2 pl-10 rounded font-bold border-green-300 bg-green-50" oninput="formatRupiah(this)"></div></div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-green-200 pt-3">
+                <div><label class="block font-bold mb-1 text-sm">No. SK Pangkat Baru</label><input type="text" id="form-pkt-sk" class="w-full border p-2 rounded"></div>
+                <div><label class="block font-bold mb-1 text-sm">Jenis SK Kenaikan</label><input type="text" id="form-pkt-jenis" placeholder="Reguler / Pilihan" class="w-full border p-2 rounded"></div>
+                <div><label class="block font-bold mb-1 text-sm">TMT SK Pangkat</label><input type="date" id="form-pkt-tmt" class="w-full border p-2 rounded"></div>
+              </div>
+            </div>
+
+            <!-- AREA JABATAN -->
+            <div id="area-form-jabatan" class="hidden bg-purple-50 p-5 rounded-lg border border-purple-300 mb-6 shadow-inner">
+              <h3 class="font-bold text-purple-800 mb-3 border-b border-purple-200 pb-2">Detail Perubahan Jabatan</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div><label class="block font-bold mb-1 text-sm">Jabatan LAMA</label><input type="text" id="form-jab-lama" class="w-full border p-2 rounded"></div>
+                <div><label class="block font-bold mb-1 text-sm text-green-700">Jabatan BARU</label><input type="text" id="form-jab-baru" class="w-full border p-2 rounded font-bold border-green-300 bg-green-50"></div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-purple-200 pt-3">
+                <div><label class="block font-bold mb-1 text-sm">No. SK Jabatan</label><input type="text" id="form-jab-sk" class="w-full border p-2 rounded"></div>
+                <div><label class="block font-bold mb-1 text-sm">TMT SK Jabatan</label><input type="date" id="form-jab-tmt" class="w-full border p-2 rounded"></div>
+                <div><label class="block font-bold mb-1 text-sm">Tunjangan Jabatan</label><div class="relative"><span class="absolute left-3 top-2 font-bold text-gray-500">Rp</span><input type="text" id="form-jab-tunj" class="w-full border p-2 pl-10 rounded font-bold" oninput="formatRupiah(this)"></div></div>
+              </div>
+            </div>
+
+            <!-- KELUARGA (Format K/0, dst) -->
+            <div id="area-form-keluarga" class="hidden bg-pink-50 p-5 rounded-lg border border-pink-300 mb-6 shadow-inner">
+              <h3 class="font-bold text-pink-800 mb-3 border-b border-pink-200 pb-2">Detail Tunjangan Keluarga</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block font-bold mb-1 text-sm">Status Tanggungan LAMA</label>
+                  <select id="form-kel-status-lama" class="w-full border p-2 rounded">
+                    <option value="">-- Pilih --</option>
+                    <option value="TK/0">TK/0</option><option value="TK/1">TK/1</option><option value="TK/2">TK/2</option><option value="TK/3">TK/3</option>
+                    <option value="K/0">K/0</option><option value="K/1">K/1</option><option value="K/2">K/2</option><option value="K/3">K/3</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block font-bold mb-1 text-sm text-green-700">Status Tanggungan BARU</label>
+                  <select id="form-kel-status-baru" class="w-full border p-2 rounded font-bold border-green-300 bg-green-50">
+                    <option value="">-- Pilih --</option>
+                    <option value="TK/0">TK/0</option><option value="TK/1">TK/1</option><option value="TK/2">TK/2</option><option value="TK/3">TK/3</option>
+                    <option value="K/0">K/0</option><option value="K/1">K/1</option><option value="K/2">K/2</option><option value="K/3">K/3</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4"><label class="block font-bold mb-2">Keterangan</label><textarea id="form-keterangan" class="w-full border p-3 rounded" rows="2"></textarea></div>
+            
+            <!-- UPDATE: AREA UPLOAD FLEKSIBEL (MAX 3) -->
+            <div class="mb-6 bg-red-50 p-4 rounded-xl border border-red-200">
+              <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 pb-2 border-b border-red-200 gap-2">
+                <div>
+                  <label class="block font-bold text-red-800 text-lg"><i class="fa-solid fa-folder-open"></i> Upload Berkas Pendukung</label>
+                  <p class="text-xs text-red-600 font-bold">Maksimal 3 File PDF (Ukuran Maksimal 300KB per file)</p>
+                </div>
+                <button type="button" onclick="tambahBarisFile()" class="bg-red-600 text-white px-4 py-2 rounded shadow hover:bg-red-700 font-bold text-sm transition"><i class="fa-solid fa-plus"></i> Tambah Kolom Berkas</button>
+              </div>
+              
+              <!-- Tempat baris file muncul otomatis -->
+              <div id="container-file-upload" class="space-y-3"></div>
+            </div>
+            
+            <button type="submit" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg w-full md:w-auto shadow-xl"><i class="fa-solid fa-paper-plane"></i> Kirim Usulan</button>
+            
+          </form>
+        </div>
+      </div>
+
+      <div id="content-status-usulan" class="content-section view-hidden">
+        <h2 class="text-2xl font-bold mb-4">Riwayat Usulan Anda</h2>
+        <div class="bg-white p-6 rounded-xl shadow border overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead class="bg-gray-200">
+              <tr><th class="p-3">ID Usulan</th><th class="p-3">Tanggal</th><th class="p-3">Jenis Usulan</th><th class="p-3">Status</th><th class="p-3">Catatan Admin</th></tr>
+            </thead>
+            <tbody id="table-riwayat-body" class="divide-y"></tbody>
+          </table>
+        </div>
+      </div>
+
+     <!-- KONTEN ADMIN -->
+      <div id="content-admin-dashboard" class="content-section view-hidden">
+        <h2 class="text-2xl font-bold mb-4">Dashboard Administrator</h2>
+        
+        <!-- Banner Selamat Datang Admin -->
+        <div class="bg-gradient-to-r from-red-700 to-red-500 rounded-2xl p-6 text-white mb-6 shadow-lg relative overflow-hidden">
+          <div class="relative z-10">
+            <h2 class="text-2xl font-bold mb-2">Selamat Datang, <span id="dash-admin-nama" class="text-yellow-300">Admin</span>! 🛡️</h2>
+            <p class="text-red-100 text-sm md:w-3/4">Anda berada di pusat kendali Sistem e-UPG. Pantau semua usulan masuk, kelola data pegawai, dan cetak laporan mutasi gaji dengan mudah dan cepat.</p>
+          </div>
+          <i class="fa-solid fa-user-shield absolute -right-4 -bottom-4 text-8xl text-white opacity-20 z-0"></i>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-white p-6 rounded shadow border-l-4 border-yellow-500 text-center"><p class="text-gray-500 font-bold uppercase">Pending</p><h3 class="text-4xl font-bold text-yellow-600" id="stat-pending">0</h3></div>
+          <div class="bg-white p-6 rounded shadow border-l-4 border-green-500 text-center"><p class="text-gray-500 font-bold uppercase">Disetujui</p><h3 class="text-4xl font-bold text-green-600" id="stat-setuju">0</h3></div>
+          <div class="bg-white p-6 rounded shadow border-l-4 border-red-500 text-center"><p class="text-gray-500 font-bold uppercase">Ditolak</p><h3 class="text-4xl font-bold text-red-600" id="stat-tolak">0</h3></div>
+        </div>
+
+        <!-- Area Grafik Admin (Sekarang dimasukkan ke DALAM content-admin-dashboard) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <!-- Grafik Proporsi Status -->
+          <div class="bg-white p-5 rounded-xl shadow border">
+            <h3 class="font-bold text-gray-700 mb-4 border-b pb-2"><i class="fa-solid fa-chart-pie text-blue-500"></i> Proporsi Status Usulan</h3>
+            <div class="relative h-64 w-full flex justify-center">
+              <canvas id="chartStatusUsulan"></canvas>
+            </div>
+          </div>
+          
+          <!-- Grafik Jenis Usulan -->
+          <div class="bg-white p-5 rounded-xl shadow border">
+            <h3 class="font-bold text-gray-700 mb-4 border-b pb-2"><i class="fa-solid fa-chart-simple text-blue-500"></i> Statistik Jenis Usulan</h3>
+            <div class="relative h-64 w-full">
+              <canvas id="chartJenisUsulan"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- TAG PENUTUP DIPINDAH KE SINI -->
+
+      <!-- ============================================== -->
+      <!-- 1. KELOLA USULAN (Update Kolom TMT & Pagination) -->
+      <!-- ============================================== -->
+      <div id="content-admin-usulan" class="content-section view-hidden">
+        <h2 class="text-2xl font-bold mb-4">Kelola Usulan Masuk</h2>
+        <div class="bg-white p-6 rounded-xl shadow border">
+
+          <!-- KOTAK 3 FILTER USULAN -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 bg-gray-50 p-4 rounded-lg border">
+            <div>
+              <label class="block text-xs font-bold mb-1 text-gray-500 uppercase">Status Usulan</label>
+              <select id="filter-usulan-status" onchange="filterTabelUsulan()" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500">
+                <option value="Semua">Semua Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Disetujui">Diterima (Disetujui)</option>
+                <option value="Ditolak">Ditolak</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1 text-gray-500 uppercase">Status Kepegawaian</label>
+              <select id="filter-usulan-asn" onchange="filterTabelUsulan()" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500">
+                <option value="Semua">Semua (PNS & PPPK)</option>
+                <option value="PNS">Hanya PNS</option>
+                <option value="PPPK">Hanya PPPK</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1 text-gray-500 uppercase">Bulan TMT (Gaji Baru)</label>
+              <select id="filter-usulan-bulan" onchange="filterTabelUsulan()" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500">
+                <option value="Semua">Semua Bulan</option>
+                <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option>
+                <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
+                <option value="07">Juli</option><option value="08">Agustus</option><option value="09">September</option>
+                <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+              </select>
+            </div>
+          </div>
+
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead class="bg-gray-800 text-white">
+                <tr>
+                  <th class="p-3">Tgl / ID</th>
+                  <th class="p-3">Nama & NIP</th>
+                  <th class="p-3">Jenis Usulan</th>
+                  <th class="p-3 text-center text-yellow-300">TMT Ajuan</th>
+                  <th class="p-3 text-center">Status</th>
+                  <th class="p-3 text-center">Aksi Admin</th>
+                </tr>
+              </thead>
+              <tbody id="table-admin-usulan-body" class="divide-y"></tbody>
+            </table>
+          </div>
+          <!-- Pagination Usulan -->
+          <div class="flex justify-between items-center mt-4 border-t pt-4">
+            <p class="text-sm text-gray-600" id="info-page-usulan">Menampilkan 0 data</p>
+            <div class="flex gap-2">
+              <button onclick="ubahHalUsulan(-1)" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 shadow-sm"><i class="fa-solid fa-chevron-left"></i></button>
+              <span id="num-page-usulan" class="px-4 py-1 font-bold text-blue-700 bg-blue-50 rounded border border-blue-200">1</span>
+              <button onclick="ubahHalUsulan(1)" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 shadow-sm"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 2. KELOLA PEGAWAI (Update 3 Kolom Filter) -->
+      <!-- ============================================== -->
+      <div id="content-admin-pegawai" class="content-section view-hidden">
+        <h2 class="text-2xl font-bold mb-4">Manajemen Data Pegawai</h2>
+        <div class="bg-white p-6 rounded-xl shadow border">
+          
+          <!-- TOMBOL TAMBAH & IMPORT -->
+          <div class="flex gap-2 mb-4">
+            <button onclick="bukaModalASN()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-bold shadow"><i class="fa-solid fa-user-plus"></i> Tambah Pegawai</button>
+            <button onclick="bukaModalImport()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-bold shadow"><i class="fa-solid fa-file-excel"></i> Import Excel</button>
+          </div>
+
+          <!-- 3 KOLOM FILTER PENCARIAN -->
+          <div class="flex flex-col md:flex-row gap-4 mb-6 bg-gray-50 p-4 rounded-lg border">
+            <div class="flex-1">
+              <label class="block text-xs font-bold mb-1 text-gray-500 uppercase">Cari NIP / Nama</label>
+              <div class="relative">
+                <input type="text" id="search-asn" onkeyup="filterTabelASN()" placeholder="Ketik NIP atau Nama..." class="w-full border p-2 pl-8 rounded">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400"></i>
+              </div>
+            </div>
+            <div class="w-full md:w-1/4">
+              <label class="block text-xs font-bold mb-1 text-gray-500 uppercase">Status ASN</label>
+              <select id="filter-asn-status" onchange="filterTabelASN()" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500">
+                <option value="Semua">Semua Status</option>
+                <option value="PNS">Hanya PNS</option>
+                <option value="PPPK">Hanya PPPK</option>
+              </select>
+            </div>
+            <div class="w-full md:w-1/3">
+              <label class="block text-xs font-bold mb-1 text-gray-500 uppercase">Unit Kerja</label>
+              <select id="filter-asn-unit" onchange="filterTabelASN()" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500">
+                <option value="Semua">Semua Unit Kerja</option>
+                <!-- Opsi akan terisi otomatis dari database -->
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead class="bg-gray-800 text-white">
+                <tr><th class="p-3">Identitas Pegawai</th><th class="p-3">Jabatan & Pangkat</th><th class="p-3">Wilayah Kerja</th><th class="p-3">Status</th><th class="p-3 text-center">Aksi</th></tr>
+              </thead>
+              <tbody id="table-asn-body" class="divide-y"></tbody>
+            </table>
+          </div>
+          <!-- Pagination Pegawai -->
+          <div class="flex justify-between items-center mt-4 border-t pt-4">
+            <p class="text-sm text-gray-600" id="info-page-pegawai">Menampilkan 0 data</p>
+            <div class="flex gap-2">
+              <button onclick="ubahHalPegawai(-1)" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 shadow-sm"><i class="fa-solid fa-chevron-left"></i></button>
+              <span id="num-page-pegawai" class="px-4 py-1 font-bold text-blue-700 bg-blue-50 rounded border border-blue-200">1</span>
+              <button onclick="ubahHalPegawai(1)" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 shadow-sm"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 3. EXPORT LAPORAN EXCEL (Update Filter Status) -->
+      <!-- ============================================== -->
+      <div id="content-admin-laporan" class="content-section view-hidden">
+        <h2 class="text-2xl font-bold mb-4">Laporan Mutasi Gaji (Excel)</h2>
+        <div class="bg-white p-6 rounded-xl shadow border">
+          
+          <!-- KOTAK FILTER PINTAR -->
+          <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6 flex flex-col md:flex-row justify-between items-end gap-4">
+            <div class="flex flex-wrap gap-4 w-full md:w-auto">
+              <div>
+                <label class="block font-bold mb-1 text-xs text-blue-800 uppercase">Bulan TMT</label>
+                <select id="filter-lap-bulan" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 font-bold" onchange="previewLaporan()">
+                  <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option><option value="04">April</option>
+                  <option value="05">Mei</option><option value="06">Juni</option><option value="07">Juli</option><option value="08">Agustus</option>
+                  <option value="09">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold mb-1 text-xs text-blue-800 uppercase">Tahun</label>
+                <input type="number" id="filter-lap-tahun" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 font-bold w-24" value="2026" onchange="previewLaporan()">
+              </div>
+              <div>
+                <label class="block font-bold mb-1 text-xs text-blue-800 uppercase">Filter Status ASN</label>
+                <select id="filter-lap-status" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 font-bold" onchange="previewLaporan()">
+                  <option value="Semua">Semua ASN</option>
+                  <option value="PNS">ASN PNS</option>
+                  <option value="PPPK">ASN PPPK</option>
+                </select>
+              </div>
+            </div>
+            <button onclick="unduhLaporanExcel()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 shadow-md text-sm md:text-base w-full md:w-auto transition h-10">
+              <i class="fa-solid fa-file-excel"></i> Unduh Excel
+            </button>
+          </div>
+
+          <h3 class="font-bold text-gray-700 mb-3 border-b pb-2"><i class="fa-solid fa-table-list"></i> Preview Data yang Akan Dicetak</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead class="bg-gray-200 text-gray-700">
+                <tr><th class="p-3">Tgl / ID</th><th class="p-3">Identitas ASN</th><th class="p-3">Jenis Usulan</th><th class="p-3 text-center">TMT Gaji Baru</th></tr>
+              </thead>
+              <tbody id="table-laporan-body" class="divide-y"></tbody>
+            </table>
+          </div>
+          <div class="flex justify-between items-center mt-4 border-t pt-4">
+            <p class="text-sm text-gray-600" id="info-page-laporan">Menampilkan 0 data</p>
+            <div class="flex gap-2">
+              <button onclick="ubahHalLaporan(-1)" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 shadow-sm"><i class="fa-solid fa-chevron-left"></i></button>
+              <span id="num-page-laporan" class="px-4 py-1 font-bold text-blue-700 bg-blue-50 rounded border border-blue-200">1</span>
+              <button onclick="ubahHalLaporan(1)" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 shadow-sm"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="content-admin-setting" class="content-section view-hidden">
+        <h2 class="text-2xl font-bold mb-4">Pengaturan Sistem</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <div class="bg-white p-6 rounded shadow border">
+            <h3 class="font-bold mb-4 border-b pb-2 text-blue-800"><i class="fa-solid fa-building"></i> Profil & Identitas</h3>
+            <div class="mb-3"><label class="block text-xs font-bold uppercase text-gray-500">Pemerintah Provinsi/Kabupaten</label><input type="text" id="set-pemda" placeholder="Contoh: Pemerintah Provinsi Jambi" class="w-full border p-2 rounded"></div>
+            <div class="mb-3"><label class="block text-xs font-bold uppercase text-gray-500">Nama Instansi / Dinas</label><input type="text" id="set-nama" class="w-full border p-2 rounded"></div>
+            <div class="mb-3"><label class="block text-xs font-bold uppercase text-gray-500">Alamat Lengkap</label><input type="text" id="set-alamat" class="w-full border p-2 rounded"></div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4 mt-6">
+               <div class="bg-gray-50 p-3 rounded border">
+                 <label class="block text-xs font-bold uppercase text-gray-500 mb-2">Logo Instansi (Kiri)</label>
+                 <input type="file" accept="image/*" class="w-full border p-1 rounded text-xs bg-white" onchange="prosesLogo(event, 'set-logo-instansi-base64', 'preview-logo-instansi')">
+                 <input type="hidden" id="set-logo-instansi-base64">
+                 <img id="preview-logo-instansi" src="" class="h-16 w-16 mt-3 hidden border rounded object-contain bg-white">
+               </div>
+               <div class="bg-gray-50 p-3 rounded border">
+                 <label class="block text-xs font-bold uppercase text-gray-500 mb-2">Logo Dinas (Kanan)</label>
+                 <input type="file" accept="image/*" class="w-full border p-1 rounded text-xs bg-white" onchange="prosesLogo(event, 'set-logo-dinas-base64', 'preview-logo-dinas')">
+                 <input type="hidden" id="set-logo-dinas-base64">
+                 <img id="preview-logo-dinas" src="" class="h-16 w-16 mt-3 hidden border rounded object-contain bg-white">
+               </div>
+            </div>
+          </div>
+          
+          <div class="space-y-6">
+            <div class="bg-white p-6 rounded shadow border">
+              <h3 class="font-bold mb-4 border-b pb-2 text-blue-800"><i class="fa-solid fa-address-book"></i> Kontak Instansi</h3>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="mb-3"><label class="block text-xs font-bold uppercase text-gray-500">Email Admin</label><input type="email" id="set-email" class="w-full border p-2 rounded"></div>
+                <div class="mb-3"><label class="block text-xs font-bold uppercase text-gray-500">No. Telp Dinas</label><input type="text" id="set-telp" class="w-full border p-2 rounded"></div>
+                <div class="mb-3"><label class="block text-xs font-bold uppercase text-gray-500">Website</label><input type="text" id="set-web" class="w-full border p-2 rounded"></div>
+                <div class="mb-3"><label class="block text-xs font-bold uppercase text-gray-500">No. HP Admin (WA)</label><input type="text" id="set-hp" class="w-full border p-2 rounded"></div>
+              </div>
+            </div>
+
+            <div class="bg-white p-6 rounded shadow border">
+  <h3 class="font-bold mb-4 border-b pb-2 text-red-800"><i class="fa-solid fa-user-shield"></i> Akun Administrator & Backup</h3>
+  
+  <div class="mb-3"><label class="block text-xs font-bold uppercase text-gray-500 mb-1">Username Admin</label><input type="text" id="set-admin-nip" class="w-full border p-2 rounded bg-red-50 font-bold"></div>
+  <div class="mb-3"><label class="block text-xs font-bold uppercase text-gray-500 mb-1">Nama Admin</label><input type="text" id="set-admin-nama" class="w-full border p-2 rounded bg-red-50 font-bold"></div>
+  <div class="mb-3">
+   <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Password Admin</label>
+   <div class="relative">
+     <input type="password" id="set-admin-pass" class="w-full border p-2 pr-10 rounded bg-red-50 font-bold" placeholder="Ketik password baru">
+     <button type="button" onclick="togglePasswordInput('set-admin-pass', 'eye-admin')" class="absolute right-3 top-2 text-gray-500 hover:text-red-600 focus:outline-none">
+       <i id="eye-admin" class="fa-solid fa-eye text-lg"></i>
+     </button>
+   </div>
+ </div>
+  </div>
+  
+  <button onclick="simpanProfilAdmin()" class="bg-red-600 text-white w-full py-2 mb-6 rounded font-bold hover:bg-red-700 shadow-md">Perbarui Akun Admin</button>
+
+  <label class="block text-xs font-bold uppercase text-gray-500 mb-1 border-t pt-4">Backup Database Utama (Google Drive)</label>
+  <button onclick="jalankanBackup()" class="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700 shadow"><i class="fa-solid fa-database"></i> Jalankan Backup Data</button>
+</div>
+            
+            <button onclick="simpanPengaturan()" class="w-full bg-blue-800 text-white py-4 rounded-xl font-bold hover:bg-blue-900 shadow-xl text-lg"><i class="fa-solid fa-floppy-disk"></i> SIMPAN SEMUA PENGATURAN</button>
+          </div>
+
+        </div>
+      </div>
+
+       <!-- FOOTER APLIKASI UTAMA -->
+      <!-- Tambahkan pb-24 agar teks tidak tertutup menu navigasi bawah di HP -->
+      <footer class="mt-auto pt-8 pb-24 md:pb-4 text-center text-xs text-gray-400 w-full no-print">
+        &copy; 2026 Sistem e-UPG DISDIK Provinsi Jambi | Hak Cipta Dilindungi. <br>
+        Created by <a href="https://wa.me/6285219901909" target="_blank" class="font-bold text-blue-500 hover:underline">Pariyanto</a> | <button type="button" onclick="bukaModalPrivasi()" class="hover:text-blue-500 hover:underline transition">Kebijakan Privasi</button>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- ============================================== -->
+    <!-- NAVIGASI BAWAH KHUSUS HP (PEGAWAI/USER)        -->
+    <!-- ============================================== -->
+    <nav id="nav-bottom-user" class="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-end pb-2 pt-2 z-50 view-hidden shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
+      <button onclick="navigate('user-dashboard')" class="flex flex-col items-center text-gray-500 hover:text-blue-600 w-1/5"><i class="fa-solid fa-house text-xl mb-1"></i><span class="text-[10px] font-bold">Home</span></button>
+      <button onclick="navigate('user-profil')" class="flex flex-col items-center text-gray-500 hover:text-blue-600 w-1/5"><i class="fa-solid fa-user-tie text-xl mb-1"></i><span class="text-[10px] font-bold">Profil</span></button>
+      
+      <!-- Tombol Tengah Menonjol (Usul Perubahan) -->
+      <div class="relative w-1/5 flex flex-col items-center justify-end">
+        <button onclick="navigate('form-usulan')" class="absolute bottom-5 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-[0_5px_15px_rgba(37,99,235,0.4)] border-4 border-gray-50 flex flex-col items-center justify-center transform hover:scale-105 transition z-10 w-14 h-14">
+          <i class="fa-solid fa-file-signature text-xl"></i>
+        </button>
+        <span class="text-[10px] font-bold text-gray-500 mt-6 relative z-0">Usulan</span>
+      </div>
+      
+      <button onclick="navigate('status-usulan')" class="flex flex-col items-center text-gray-500 hover:text-blue-600 w-1/5"><i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i><span class="text-[10px] font-bold">Riwayat</span></button>
+      <button onclick="handleLogout()" class="flex flex-col items-center text-red-400 hover:text-red-600 w-1/5"><i class="fa-solid fa-right-from-bracket text-xl mb-1"></i><span class="text-[10px] font-bold">Keluar</span></button>
+    </nav>
+
+    <!-- ============================================== -->
+    <!-- NAVIGASI BAWAH KHUSUS HP (ADMIN)               -->
+    <!-- ============================================== -->
+    <nav id="nav-bottom-admin" class="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-end pb-2 pt-2 z-50 view-hidden shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
+      <button onclick="navigate('admin-dashboard')" class="flex flex-col items-center text-gray-500 hover:text-blue-600 w-1/5"><i class="fa-solid fa-chart-pie text-xl mb-1"></i><span class="text-[10px] font-bold">Home</span></button>
+      <button onclick="navigate('admin-pegawai')" class="flex flex-col items-center text-gray-500 hover:text-blue-600 w-1/5"><i class="fa-solid fa-users text-xl mb-1"></i><span class="text-[10px] font-bold">Pegawai</span></button>
+      
+     <!-- Tombol Tengah Menonjol (Kelola Usulan) -->
+      <div class="relative w-1/5 flex flex-col items-center justify-end">
+        <button onclick="navigate('admin-usulan')" class="absolute bottom-5 bg-yellow-500 hover:bg-yellow-600 text-white p-3 rounded-full shadow-[0_5px_15px_rgba(234,179,8,0.4)] border-4 border-gray-50 flex flex-col items-center justify-center transform hover:scale-105 transition z-10 w-14 h-14">
+          <i class="fa-solid fa-inbox text-xl"></i>
+        </button>
+        <span class="text-[10px] font-bold text-gray-500 mt-6 relative z-0">Daftar Usul</span>
+      </div>
+      
+      <button onclick="navigate('admin-laporan')" class="flex flex-col items-center text-gray-500 hover:text-blue-600 w-1/5"><i class="fa-solid fa-print text-xl mb-1"></i><span class="text-[10px] font-bold">Laporan</span></button>
+      <button onclick="handleLogout()" class="flex flex-col items-center text-red-400 hover:text-red-600 w-1/5"><i class="fa-solid fa-right-from-bracket text-xl mb-1"></i><span class="text-[10px] font-bold">Keluar</span></button>
+    </nav>
+
+  </div>
+
+<!-- MODAL FORM ASN (Update Validasi NIP & Auto-Password) -->
+  <div id="modal-asn" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center view-hidden">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeModalASN()" class="absolute top-4 right-4 text-gray-500 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+      <h3 class="text-xl font-bold mb-4 border-b pb-2 text-blue-800" id="modal-asn-title"><i class="fa-solid fa-user-plus"></i> Form Data Pegawai</h3>
+      
+      <form id="form-asn" onsubmit="simpanDataASN(event)">
+        <input type="hidden" id="asn-rowidx"> 
+        
+        <!-- Baris 1: NIP (Divalidasi), Nama, Password (Auto) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-bold mb-1">NIP (18 Digit)</label>
+            <input type="text" id="asn-nip" required class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Wajib 18 digit" oninput="validasiNIP(this)" onblur="cekPanjangNIP(this)">
+          </div>
+          <div><label class="block text-sm font-bold mb-1">Nama Lengkap</label><input type="text" id="asn-nama" required class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500"></div>
+          <div>
+            <label class="block text-sm font-bold mb-1 text-red-600">Password Login</label>
+            <input type="text" id="asn-password" class="w-full border p-2 rounded focus:ring-2 focus:ring-red-500" placeholder="Kosongkan jika tidak diubah" title="Password lama sudah dienkripsi">
+          </div>
+          <div><label class="block text-sm font-bold mb-1 text-green-700">Email Pemulihan</label><input type="email" id="asn-email" class="w-full border p-2 rounded focus:ring-2 focus:ring-green-500 bg-green-50" placeholder="Email pegawai aktif" required></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-gray-50 p-3 rounded border">
+          <div><label class="block text-sm font-bold mb-1 text-blue-800">Status ASN</label><select id="asn-status" required class="w-full border p-2 rounded" onchange="renderDropdownGolongan()"><option value="">-- Pilih Status --</option><option value="PNS">PNS</option><option value="PPPK">PPPK</option></select></div>
+          <div><label class="block text-sm font-bold mb-1 text-blue-800">Pangkat / Golongan</label><select id="asn-golongan" required class="w-full border p-2 rounded disabled:bg-gray-200" disabled><option value="">-- Pilih Status Terlebih Dahulu --</option></select></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div><label class="block text-sm font-bold mb-1">Jabatan</label><input type="text" id="asn-jabatan" required class="w-full border p-2 rounded"></div>
+          <div>
+            <label class="block text-sm font-bold mb-1">Unit Kerja / Sekolah</label>
+            <input type="text" id="asn-unit" list="data-unit-kerja" required class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Ketik untuk mencari...">
+          </div>
+          <div>
+            <label class="block text-sm font-bold mb-1 text-green-700">Kabupaten / Kota</label>
+            <select id="asn-kabkota" required class="w-full border p-2 rounded border-green-300 bg-green-50"><option value="">-- Pilih Wilayah --</option><option value="Kantor Dinas">Kantor Dinas</option><option value="Kota Jambi">Kota Jambi</option><option value="Kota Sungai Penuh">Kota Sungai Penuh</option><option value="Kabupaten Batanghari">Kabupaten Batanghari</option><option value="Kabupaten Bungo">Kabupaten Bungo</option><option value="Kabupaten Kerinci">Kabupaten Kerinci</option><option value="Kabupaten Merangin">Kabupaten Merangin</option><option value="Kabupaten Muaro Jambi">Kabupaten Muaro Jambi</option><option value="Kabupaten Sarolangun">Kabupaten Sarolangun</option><option value="Kabupaten Tanjung Jabung Barat">Kabupaten Tanjung Jabung Barat</option><option value="Kabupaten Tanjung Jabung Timur">Kabupaten Tanjung Jabung Timur</option><option value="Kabupaten Tebo">Kabupaten Tebo</option></select>
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 shadow-md text-lg"><i class="fa-solid fa-floppy-disk"></i> Simpan Data Pegawai</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL KEBIJAKAN PRIVASI -->
+  <div id="modal-privasi" class="fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center view-hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl relative flex flex-col max-h-[90vh]">
+      
+      <!-- Header Modal -->
+      <div class="p-5 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
+        <h3 class="text-xl font-bold text-blue-800"><i class="fa-solid fa-shield-halved"></i> Kebijakan Privasi & Keamanan Data</h3>
+        <button onclick="closeModalPrivasi()" class="text-gray-400 hover:text-red-500 text-2xl transition"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <!-- Isi Kebijakan Privasi (Scrollable) -->
+      <div class="p-6 overflow-y-auto flex-grow text-sm text-gray-700 space-y-4 text-justify">
+        <p><strong>Pemerintah Provinsi Jambi melalui Dinas Pendidikan</strong> ("Kami") berkomitmen penuh untuk melindungi privasi dan keamanan data pribadi setiap Aparatur Sipil Negara (ASN) yang menggunakan Sistem Elektronik Usulan Perubahan Gaji (e-UPG).</p>
+        
+        <h4 class="font-bold text-gray-800 mt-4 border-b pb-1">1. Pengumpulan Informasi Pribadi</h4>
+        <p>Sistem e-UPG mengumpulkan informasi pribadi yang diserahkan secara langsung oleh Anda atau diunggah oleh Administrator secara sah, meliputi namun tidak terbatas pada: Nomor Induk Pegawai (NIP), Nama Lengkap, Jabatan, Pangkat/Golongan, Unit Kerja, Riwayat Gaji, Data Keluarga (Tanggungan), serta dokumen digital pendukung (SK, Surat Keputusan, dll).</p>
+
+        <h4 class="font-bold text-gray-800 mt-4 border-b pb-1">2. Penggunaan Data</h4>
+        <p>Seluruh data yang dikumpulkan semata-mata digunakan untuk kepentingan administrasi kepegawaian dan pemrosesan hak finansial ASN, mencakup: verifikasi Kenaikan Gaji Berkala (KGB), validasi Kenaikan Pangkat, penyesuaian Tunjangan Jabatan, dan penyusunan Laporan Mutasi Gaji standar Badan Kepegawaian Daerah (BKD).</p>
+
+        <h4 class="font-bold text-gray-800 mt-4 border-b pb-1">3. Keamanan dan Enkripsi Data</h4>
+        <p>Kami menerapkan standar keamanan industri untuk melindungi integritas data Anda. Kata sandi (password) otentikasi dienkripsi menggunakan algoritma <strong>SHA-256</strong> secara *one-way* sehingga tidak dapat dibaca oleh pihak manapun, termasuk administrator sistem. Dokumen elektronik yang diunggah disimpan di dalam infrastruktur komputasi awan yang terisolasi dan dilindungi hak akses ketat.</p>
+
+        <h4 class="font-bold text-gray-800 mt-4 border-b pb-1">4. Pembagian dan Keterbukaan Informasi</h4>
+        <p>Data kepegawaian Anda bersifat rahasia. Kami <strong>tidak akan memperjualbelikan, menyewakan, atau mendistribusikan</strong> informasi pribadi Anda kepada pihak ketiga manapun. Data hanya akan diteruskan kepada entitas pemerintah yang berwenang (seperti BKD Provinsi, BPKAD, atau PT. Taspen) dalam rangka pemenuhan kewajiban perundang-undangan dan hak kepegawaian Anda.</p>
+
+        <h4 class="font-bold text-gray-800 mt-4 border-b pb-1">5. Hak Akses dan Pembaruan Data</h4>
+        <p>Setiap ASN berhak penuh untuk mengakses, meninjau, dan memperbarui informasi dasar (seperti Kata Sandi, Unit Kerja, dan Jabatan) melalui menu "Profil Saya". Apabila terdapat ketidaksesuaian rekam jejak, Anda berhak mengajukan usulan perbaikan data dengan melampirkan bukti autentik (SK terkait).</p>
+
+        <h4 class="font-bold text-gray-800 mt-4 border-b pb-1">6. Perubahan Kebijakan</h4>
+        <p>Kami memegang hak prerogatif untuk memperbarui Kebijakan Privasi ini sewaktu-waktu guna mematuhi perubahan regulasi Pemerintah Republik Indonesia. Setiap perubahan material akan diberitahukan melalui papan informasi dasbor sistem.</p>
+
+        <p class="mt-6 italic text-gray-500">Terakhir diperbarui: 2026. Dengan mengakses dan menggunakan Sistem e-UPG, Anda dianggap telah membaca, memahami, dan menyetujui seluruh ketentuan yang tercantum dalam Kebijakan Privasi ini.</p>
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="p-4 border-t bg-gray-50 rounded-b-xl flex justify-end">
+        <button onclick="closeModalPrivasi()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700 shadow transition">Saya Mengerti</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL LUPA PASSWORD VIA EMAIL -->
+  <div id="modal-lupa-pass" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center view-hidden">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm relative">
+      <button onclick="closeModalLupaPass()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+      <h3 class="text-lg font-bold mb-2 border-b pb-2 text-blue-800"><i class="fa-solid fa-key"></i> Reset Password</h3>
+      <p class="text-sm text-gray-500 mb-4">Sistem akan membuatkan password baru secara acak dan mengirimkannya ke email Anda.</p>
+      
+      <form onsubmit="submitLupaPassword(event)">
+        <div class="mb-3">
+          <label class="block text-sm font-bold mb-1 text-gray-700">NIP Anda</label>
+          <input type="text" id="lupa-nip" required class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Ketik 18 digit NIP">
+        </div>
+        <div class="mb-5">
+          <label class="block text-sm font-bold mb-1 text-gray-700">Email Terdaftar</label>
+          <input type="email" id="lupa-email" required class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="email@gmail.com">
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 shadow transition"><i class="fa-solid fa-paper-plane"></i> Kirim Password Baru</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL IMPORT EXCEL (BARU) -->
+  <div id="modal-import-asn" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center view-hidden">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md relative">
+      <button onclick="closeModalImport()" class="absolute top-4 right-4 text-gray-500 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+      <h3 class="text-xl font-bold mb-4 border-b pb-2 text-green-800"><i class="fa-solid fa-file-excel"></i> Import Data Pegawai</h3>
+
+      <div class="mb-6 bg-blue-50 p-4 rounded border border-blue-200 text-sm">
+        <p class="mb-3 font-bold text-blue-800">Langkah 1: Unduh Format</p>
+        <p class="mb-3 text-gray-700">Silakan unduh template Excel baku berikut ini. Sistem otomatis men-setting password pegawai sama dengan NIP-nya.</p>
+        <button onclick="unduhTemplateExcel()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700 shadow w-full transition"><i class="fa-solid fa-download"></i> Download Format Template</button>
+      </div>
+
+      <div class="mb-4">
+        <p class="mb-2 font-bold text-green-800 text-sm">Langkah 2: Upload File Excel</p>
+        <input type="file" id="upload-excel-modal" accept=".xlsx, .xls" class="w-full border p-2 rounded bg-gray-50 text-sm" onchange="prosesImportExcel(event)">
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL POPUP DETAIL USULAN ADMIN -->
+  <div id="modal-detail" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center view-hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl relative max-h-[95vh] flex flex-col">
+      
+      <div class="p-5 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
+        <h3 class="text-xl font-bold text-blue-800"><i class="fa-solid fa-folder-tree"></i> Detail Lengkap Usulan</h3>
+        <button onclick="closeModalDetail()" class="text-gray-400 hover:text-red-500 text-2xl transition"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div class="p-6 overflow-y-auto flex-grow grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Kiri: Data Pegawai -->
+        <div>
+          <h4 class="font-bold text-gray-700 border-b pb-2 mb-3 uppercase tracking-wide text-sm">Informasi Pegawai</h4>
+          <div class="space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-100" id="detail-pegawai-area">
+            <!-- Diisi Javascript -->
+          </div>
+        </div>
+        
+        <!-- Kanan: Data Usulan & Berkas -->
+        <div>
+          <h4 class="font-bold text-gray-700 border-b pb-2 mb-3 uppercase tracking-wide text-sm" id="detail-judul-jenis">Detail Usulan</h4>
+          <div class="space-y-2 mb-6" id="detail-usulan-area">
+            <!-- Diisi Javascript -->
+          </div>
+
+          <h4 class="font-bold text-gray-700 border-b pb-2 mb-3 uppercase tracking-wide text-sm">Berkas Dilampirkan</h4>
+          <div class="space-y-2" id="detail-berkas-area">
+            <!-- Diisi Javascript -->
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t bg-gray-50 rounded-b-xl flex justify-end gap-2" id="detail-action-area">
+        <!-- Tombol Terima/Tolak akan ditaruh di sini via Javascript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL INSTALL APLIKASI -->
+  <div id="modal-install" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center view-hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm relative">
+      <button onclick="closeModalInstall()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+      <h3 class="text-lg font-bold mb-4 border-b pb-2 text-blue-800"><i class="fa-solid fa-download"></i> Install Aplikasi</h3>
+      
+      <div class="flex flex-col gap-3">
+        <button class="bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg font-bold shadow-md flex items-center gap-3 transition transform hover:scale-105">
+          <i class="fa-brands fa-android text-2xl w-8"></i> Install Android (APK)
+        </button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-bold shadow-md flex items-center gap-3 transition transform hover:scale-105">
+          <i class="fa-brands fa-windows text-2xl w-8"></i> Install Windows PC
+        </button>
+        <button class="bg-gray-800 hover:bg-gray-900 text-white p-3 rounded-lg font-bold shadow-md flex items-center gap-3 transition transform hover:scale-105">
+          <i class="fa-brands fa-apple text-2xl w-8"></i> Install iPhone (iOS)
+        </button>
+      </div>
+      <p class="text-xs text-gray-400 mt-4 text-center italic">*Fitur instalasi masih dalam tahap pengembangan.</p>
+    </div>
+  </div>
+
+  <!-- MODAL KONTAK ADMIN -->
+  <div id="modal-kontak" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center view-hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm relative">
+      <button onclick="closeModalKontak()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+      <h3 class="text-lg font-bold mb-4 border-b pb-2 text-green-700"><i class="fa-solid fa-headset"></i> Hubungi Administrator</h3>
+      
+      <div class="flex flex-col gap-3">
+        <a href="#" id="link-wa-admin" target="_blank" class="bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg font-bold shadow-md flex items-center gap-3 transition transform hover:scale-105">
+          <i class="fa-brands fa-whatsapp text-2xl w-8"></i> WhatsApp Admin
+        </a>
+        <a href="#" id="link-telp-admin" class="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-bold shadow-md flex items-center gap-3 transition transform hover:scale-105">
+          <i class="fa-solid fa-phone text-2xl w-8"></i> Telepon Kantor
+        </a>
+        <a href="#" id="link-email-admin" target="_blank" class="bg-red-500 hover:bg-red-600 text-white p-3 rounded-lg font-bold shadow-md flex items-center gap-3 transition transform hover:scale-105">
+          <i class="fa-solid fa-envelope text-2xl w-8"></i> Email Bantuan
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- WADAH DROPDOWN AUTOCOMPLETE UNIT KERJA -->
+  <datalist id="data-unit-kerja"></datalist>
+
+  <!-- Memanggil file JavaScript eksternal -->
+  <script src="script.js"></script>
+
+</body>
+</html>
