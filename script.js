@@ -1373,36 +1373,27 @@ async function unduhLaporanExcel() {
     showLoading(true);
 
     try {
-        // 1. Inisialisasi Workbook ExcelJS
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet('Laporan Mutasi');
 
-        // 2. Mengatur Lebar Kolom (A sampai H)
+        // Mengatur Lebar Kolom
         sheet.columns = [
-            { width: 6 },  // A: NO
-            { width: 35 }, // B: NAMA / NIP
-            { width: 28 }, // C: PANGKAT / GOLONGAN
-            { width: 25 }, // D: JENIS
-            { width: 20 }, // E: DATA LAMA
-            { width: 20 }, // F: DATA BARU
-            { width: 18 }, // G: TMT
-            { width: 35 }  // H: KETERANGAN
+            { width: 6 }, { width: 35 }, { width: 28 }, { width: 25 }, 
+            { width: 20 }, { width: 20 }, { width: 18 }, { width: 35 }
         ];
 
-        // 3. Menambahkan Judul Laporan (Center & Bold)
-        sheet.mergeCells('A1:H1');
-        sheet.getCell('A1').value = 'DAFTAR FORMULIR PEREMAJAAN DATA MUTASI GAJI PEGAWAI (Pangkat/Berkala)';
-        sheet.mergeCells('A2:H2');
-        sheet.getCell('A2').value = dinas.toUpperCase();
-        sheet.mergeCells('A3:H3');
-        sheet.getCell('A3').value = `BULAN ${namaBulan.toUpperCase()} TAHUN ${tahun}`;
+        // Menambahkan Judul Laporan
+        sheet.mergeCells('A1:H1'); sheet.getCell('A1').value = 'DAFTAR FORMULIR PEREMAJAAN DATA MUTASI GAJI PEGAWAI (Pangkat/Berkala)';
+        sheet.mergeCells('A2:H2'); sheet.getCell('A2').value = dinas.toUpperCase();
+        sheet.mergeCells('A3:H3'); sheet.getCell('A3').value = `BULAN ${namaBulan.toUpperCase()} TAHUN ${tahun}`;
 
+        // Mengatur Font Judul menjadi Times New Roman & Bold
         for(let i = 1; i <= 3; i++) {
             sheet.getCell(`A${i}`).alignment = { horizontal: 'center', vertical: 'middle' };
-            sheet.getCell(`A${i}`).font = { bold: true, size: 12 };
+            sheet.getCell(`A${i}`).font = { name: 'Times New Roman', bold: true, size: 12 };
         }
 
-        // 4. Membuat Header Tabel (Baris 5 & 6)
+        // Membuat Header Tabel
         sheet.mergeCells('A5:A6'); sheet.getCell('A5').value = 'NO.';
         sheet.mergeCells('B5:B6'); sheet.getCell('B5').value = 'NAMA / NIP';
         sheet.mergeCells('C5:C6'); sheet.getCell('C5').value = 'PANGKAT / GOLONGAN';
@@ -1415,20 +1406,26 @@ async function unduhLaporanExcel() {
         sheet.mergeCells('G5:G6'); sheet.getCell('G5').value = 'TMT';
         sheet.mergeCells('H5:H6'); sheet.getCell('H5').value = 'KETERANGAN';
 
-        // Menambahkan Baris Angka (Indeks Kolom) di Baris ke-7
         sheet.addRow([1, 2, 3, 4, 5, 6, 7, 8]);
 
-        // Fungsi bantuan untuk memformat angka menjadi format Rupiah dengan titik
         const formatRp = (angka) => {
             if (!angka || isNaN(angka)) return '-';
             return 'Rp ' + new Intl.NumberFormat('id-ID').format(angka);
         };
 
-        // 5. Memasukkan Data Pegawai
+        // Memasukkan Data Pegawai
         laporanFilteredList.forEach((item, index) => {
             let detail = {}; try { detail = JSON.parse(item.detail); } catch(e) {}
             
-            let namaNip = `${item.nama}\nNip. ${item.nip}`;
+            // FITUR BARU: MENGGUNAKAN RICH TEXT
+            // Membuat Nama Pegawai menjadi BOLD, sedangkan NIP di bawahnya tidak BOLD.
+            let namaNip = {
+                richText: [
+                    { font: { name: 'Times New Roman', size: 11, bold: true }, text: item.nama + '\n' },
+                    { font: { name: 'Times New Roman', size: 11, bold: false }, text: 'Nip. ' + item.nip }
+                ]
+            };
+            
             let pangkat = detail.golongan_usulan || '-';
             let jenis = item.jenis;
             
@@ -1437,7 +1434,6 @@ async function unduhLaporanExcel() {
 
             let lamaText = '-', baruText = '-', tmtSk = '';
             
-            // PENERAPAN FORMAT RUPIAH DI SINI
             if (jenis === 'Kenaikan Gaji Berkala (KGB)') {
                 lamaText = `${formatRp(detail.gaji_lama)}`; 
                 baruText = `${formatRp(detail.gaji_baru)}`; 
@@ -1459,21 +1455,21 @@ async function unduhLaporanExcel() {
 
         let endRowData = sheet.lastRow.number;
 
-        // 6. Memberikan Garis Pembatas (Borders) dan Teks Rapi (Wrap Text)
+        // Memberikan Garis Pembatas (Borders) & Merapikan Font Keseluruhan Tabel
         for (let i = 5; i <= endRowData; i++) {
             let row = sheet.getRow(i);
             row.eachCell({ includeEmpty: true }, function(cell, colNumber) {
-                // Menambahkan Garis
-                cell.border = {
-                    top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}
-                };
+                cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
                 
                 if (i <= 7) {
-                    // Gaya untuk Header Tabel (Bold & Tengah)
-                    cell.font = { bold: true };
+                    // Header Tabel (Baris 5, 6, 7): Times New Roman, BOLD, Center
+                    cell.font = { name: 'Times New Roman', size: 11, bold: true };
                     cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
                 } else {
-                    // Gaya untuk Isi Data (Kiri atas, kecuali Nomor dan TMT di Tengah)
+                    // Isi Data: Periksa agar tidak menimpa RichText di kolom Nama/NIP
+                    if (!cell.value || !cell.value.richText) {
+                        cell.font = { name: 'Times New Roman', size: 11 };
+                    }
                     cell.alignment = { 
                         horizontal: (colNumber === 1 || colNumber === 7) ? 'center' : 'left', 
                         vertical: 'top', 
@@ -1483,41 +1479,36 @@ async function unduhLaporanExcel() {
             });
         }
 
-        // 7. Membuat Area Tanda Tangan (Kepala Dinas Kiri, Bendahara Kanan)
+        // Membuat Area Tanda Tangan
         let ttdStartRow = endRowData + 2;
         
-        // Tanggal Laporan di Kanan
         sheet.getCell(`G${ttdStartRow}`).value = `Jambi, .................... ${tahun}`;
-        
-        // Jabatan
         sheet.getCell(`B${ttdStartRow + 1}`).value = 'Kepala Dinas Pendidikan';
         sheet.getCell(`G${ttdStartRow + 1}`).value = 'Bendahara Pengeluaran';
-        
         sheet.getCell(`B${ttdStartRow + 2}`).value = 'Provinsi Jambi';
         
-        // Nama Lengkap (Berada 4 baris di bawah jabatan untuk ruang tanda tangan)
         sheet.getCell(`B${ttdStartRow + 6}`).value = kNama;
         sheet.getCell(`G${ttdStartRow + 6}`).value = bNama;
-        
-        // Pangkat
         sheet.getCell(`B${ttdStartRow + 7}`).value = kPangkat;
         sheet.getCell(`G${ttdStartRow + 7}`).value = bPangkat;
-        
-        // NIP
         sheet.getCell(`B${ttdStartRow + 8}`).value = kNip;
         sheet.getCell(`G${ttdStartRow + 8}`).value = bNip;
 
-        // Mengatur Posisi Tanda Tangan agar berada di Tengah (Center)
+        // Mengatur Font Tanda Tangan menjadi Times New Roman
         for(let r = ttdStartRow; r <= ttdStartRow + 8; r++) {
             sheet.getCell(`B${r}`).alignment = { horizontal: 'center' };
             sheet.getCell(`G${r}`).alignment = { horizontal: 'center' };
+            
+            // Atur default font Times New Roman
+            sheet.getCell(`B${r}`).font = { name: 'Times New Roman', size: 11 };
+            sheet.getCell(`G${r}`).font = { name: 'Times New Roman', size: 11 };
         }
         
-        // Menebalkan dan Menggarisbawahi Nama Kepala & Bendahara
-        sheet.getCell(`B${ttdStartRow + 6}`).font = { bold: true, underline: true };
-        sheet.getCell(`G${ttdStartRow + 6}`).font = { bold: true, underline: true };
+        // Menimpa font khusus untuk Nama agar BOLD dan Underline
+        sheet.getCell(`B${ttdStartRow + 6}`).font = { name: 'Times New Roman', size: 11, bold: true, underline: true };
+        sheet.getCell(`G${ttdStartRow + 6}`).font = { name: 'Times New Roman', size: 11, bold: true, underline: true };
 
-        // 8. Menyimpan dan Mengunduh File Excel
+        // Menyimpan dan Mengunduh File Excel
         const buffer = await workbook.xlsx.writeBuffer();
         saveAs(new Blob([buffer]), `Mutasi_Gaji_${namaBulan}_${tahun}.xlsx`);
         
