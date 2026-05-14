@@ -443,14 +443,45 @@ async function loadDataUsulanAdmin() {
 }
 
 async function loadDataASN() {
+  // 1. CEK MEMORI BROWSER DULU
+  // Jika data sudah ada di Local Storage, langsung gunakan tanpa loading ke server!
+  const cachedData = localStorage.getItem('asn_data_cache');
+  if (cachedData && asnDataList.length === 0) {
+      asnDataList = JSON.parse(cachedData);
+      asnFilteredList = [...asnDataList];
+      halPegawai = 1;
+      renderTabelASN();
+      return; // Hentikan fungsi di sini agar tidak loading ke server
+  }
+
   showLoading(true);
   try {
     const res = await callAPI('getSemuaASN');
     showLoading(false);
-    asnDataList = res.data.filter(item => item.role !== 'Admin'); 
+    
+    // Pisahkan data yang bukan Admin
+    let rawDataList = res.data.filter(item => item.role !== 'Admin'); 
+
+    // Mengurutkan PNS di atas, lalu Abjad
+    rawDataList.sort((a, b) => {
+        if (a.status === 'PNS' && b.status !== 'PNS') return -1;
+        if (a.status !== 'PNS' && b.status === 'PNS') return 1;
+        return a.nama.localeCompare(b.nama);
+    });
+
+    asnDataList = rawDataList;
     asnFilteredList = [...asnDataList];
+    
+    // 2. SIMPAN KE MEMORI BROWSER
+    // Menyimpan data terbaru ke Local Storage agar tahan dari tombol Refresh (F5)
+    localStorage.setItem('asn_data_cache', JSON.stringify(asnDataList));
+    
+    halPegawai = 1; 
     renderTabelASN();
-  } catch(err) { showLoading(false); }
+  } catch(err) { 
+    showLoading(false); 
+    Swal.fire('Error', 'Gagal memuat data dari server.', 'error');
+  }
 }
 
 async function simpanDataASN(e) {
@@ -716,27 +747,36 @@ async function jalankanBackup() {
   }
 
   // --- FUNGSI LOGOUT ---
-  function handleLogout() {
-    Swal.fire({
-      title: 'Keluar Aplikasi?',
-      text: "Anda akan mengakhiri sesi aktif saat ini.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Ya, Keluar!'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        localStorage.removeItem('asn_session');
-        currentUser = null;
-        document.getElementById('view-app').classList.add('view-hidden');
-        document.getElementById('view-landing').classList.add('view-hidden');
-        // Arahkan LANGSUNG KE LOGIN
-        document.getElementById('view-login').classList.remove('view-hidden'); 
-        document.getElementById('form-login').reset();
-      }
-    });
-  }
+ function handleLogout() {
+  Swal.fire({
+    title: 'Keluar Aplikasi?',
+    text: "Anda akan mengakhiri sesi aktif saat ini.",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Ya, Keluar!'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // Hapus sesi login
+      localStorage.removeItem('asn_session');
+      
+      // TAMBAHAN KEAMANAN: Hapus cache data pegawai dari browser
+      localStorage.removeItem('asn_data_cache'); 
+      
+      // Kosongkan memori aplikasi
+      currentUser = null;
+      asnDataList = []; 
+      allUsulanAdminList = [];
+
+      document.getElementById('view-app').classList.add('view-hidden');
+      document.getElementById('view-landing').classList.add('view-hidden');
+      // Arahkan LANGSUNG KE LOGIN
+      document.getElementById('view-login').classList.remove('view-hidden'); 
+      document.getElementById('form-login').reset();
+    }
+  });
+}
 
  // --- FUNGSI PEMISAHAN MENU USER & ADMIN (UPDATE NATIVE MOBILE) ---
   function tampilkanAplikasi(user) {
@@ -1721,19 +1761,20 @@ async function unduhLaporanExcel() {
 
 // 1. Fungsi Cerdas untuk Reload Data sesuai halaman yang aktif
 function refreshDataServer() {
-    // Mencari elemen halaman mana yang sedang tampil (tidak memiliki class 'view-hidden')
     const activeView = document.querySelector('.content-section:not(.view-hidden)');
     if (!activeView) return;
     
-    const idActive = activeView.id; // Contoh: 'content-admin-pegawai'
+    const idActive = activeView.id; 
 
     if (idActive === 'content-admin-pegawai') {
-        // Kosongkan list agar fungsi load memanggil server kembali
+        // Kosongkan memori sementara
         asnDataList = []; 
+        // HAPUS INGATAN LOCAL STORAGE
+        // Ini memaksa fungsi loadDataASN() untuk menembak server lagi
+        localStorage.removeItem('asn_data_cache');
         loadDataASN();
     } 
     else if (idActive === 'content-admin-dashboard' || idActive === 'content-admin-laporan' || idActive === 'content-admin-usulan') {
-        // Kosongkan list usulan agar fungsi load memanggil server kembali
         allUsulanAdminList = [];
         loadDataUsulanAdmin();
     } 
