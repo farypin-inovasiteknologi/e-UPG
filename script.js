@@ -1714,3 +1714,62 @@ async function unduhLaporanExcel() {
       });
     }
   }
+
+// ==========================================
+// FITUR TAMBAHAN: RELOAD MANUAL & SCROLL TOP
+// ==========================================
+
+// 1. Fungsi Cerdas untuk Reload Data sesuai halaman yang aktif
+function refreshDataServer() {
+    // Mencari elemen halaman mana yang sedang tampil (tidak memiliki class 'view-hidden')
+    const activeView = document.querySelector('.content-section:not(.view-hidden)');
+    if (!activeView) return;
+    
+    const idActive = activeView.id; // Contoh: 'content-admin-pegawai'
+
+    if (idActive === 'content-admin-pegawai') {
+        // Kosongkan list agar fungsi load memanggil server kembali
+        asnDataList = []; 
+        loadDataASN();
+    } 
+    else if (idActive === 'content-admin-dashboard' || idActive === 'content-admin-laporan' || idActive === 'content-admin-usulan') {
+        // Kosongkan list usulan agar fungsi load memanggil server kembali
+        allUsulanAdminList = [];
+        loadDataUsulanAdmin();
+    } 
+    else if (idActive === 'content-status-usulan') {
+        loadRiwayatUser();
+    } 
+    else {
+        Swal.fire('Info', 'Halaman ini otomatis menggunakan data terbaru.', 'info');
+    }
+}
+
+// 2. Fungsi untuk menggulir layar ke atas secara halus (Smooth Scroll)
+function scrollToTop() {
+    // Karena aplikasi kita menggunakan flex container untuk scroll (id="main-area")
+    const mainArea = document.getElementById('main-area');
+    if (mainArea) {
+        mainArea.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+// 3. Event Listener untuk memunculkan tombol Scroll To Top saat di-scroll
+document.addEventListener('DOMContentLoaded', () => {
+    const mainArea = document.getElementById('main-area');
+    const btnScroll = document.getElementById('btn-scroll-top');
+    
+    if (mainArea && btnScroll) {
+        mainArea.addEventListener('scroll', () => {
+            // Jika layar di-scroll lebih dari 200px ke bawah, munculkan tombol
+            if (mainArea.scrollTop > 200) {
+                btnScroll.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+                btnScroll.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+            } else {
+                // Jika kembali ke atas, sembunyikan tombol
+                btnScroll.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+                btnScroll.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
+            }
+        });
+    }
+});
